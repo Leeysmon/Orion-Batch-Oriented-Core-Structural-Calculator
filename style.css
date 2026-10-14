@@ -84,6 +84,20 @@ th { background: var(--soft); position: sticky; top: 0; }
 .tablewrap tr { cursor: pointer; }
 .tablewrap tr.bad td { color: var(--danger); }
 .tablewrap tr:hover td { background: #14294a; }
+.tablewrap tr.chk td { background: #16325a; }
+.tablewrap th.ck, .tablewrap td.ck { width: 30px; text-align: center; padding: 5px 6px; }
+.tablewrap th.ck input, .tablewrap td.ck input { width: auto; cursor: pointer; }
+.tablewrap th.sortable { cursor: pointer; user-select: none; }
+.tablewrap th.sortable:hover { background: #1f4068; }
+.tablewrap tr.frow th { top: var(--thh, 34px); padding: 3px 4px; z-index: 1; }
+.tablewrap tr.frow input { padding: 3px 6px; font-size: .75rem; min-width: 60px; border-radius: 6px; }
+.tablewrap thead th { z-index: 2; }
+.snset { display: grid; gap: 2px; font-size: .85rem; }
+.snset label.chk { display: flex; gap: 8px; align-items: center; margin-top: 7px; }
+.snset .row { margin-top: 10px; display: grid; gap: 3px; }
+.snset .row b { font-weight: 600; color: var(--muted); font-size: .78rem; }
+.snset input[type=range] { width: 100%; }
+#sn { cursor: default; }
 footer { text-align: center; color: var(--muted); font-size: .78rem; padding: 6px 28px 6px; }
 footer.disclaimer { max-width: 1100px; margin: 0 auto; padding-bottom: 24px; font-size: .72rem; line-height: 1.55; border-top: 1px solid var(--line); padding-top: 12px; }
 .hidden { display: none !important; }

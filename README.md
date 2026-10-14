@@ -1,6 +1,6 @@
 # Orion – Batch Oriented Core Structural Calculator
 
-**Version 2.1 · 2026 · Developer: Dr. L. Hulijeli**
+**Version 3.0 · 2026 · Developer: Dr. L. Hulijeli**
 
 Orion calculates the true orientation (dip, dip direction, strike) of planar structures measured on oriented drill core, for many measurements at once. Upload your collar, survey and structure tables (CSV or XLSX), map the columns, and Orion calculates every structure and shows the results in a compass preview and an interactive 3D viewer.
 
@@ -22,6 +22,9 @@ It is a batch version of the single-measurement [Oriented Core Structural Calcul
     - interactive legend (click a symbol to show/hide those structures)
     - labelled X / Y / Z axes with automatic tick spacing (toggleable)
     - Reset view, North-up plan, maximise, export to PNG / JPEG / PDF
+- **Stereonet (new in 3.0):** equal-area lower-hemisphere projection of the structures currently shown in the 3D viewer, with great circles and/or poles, a dashed red mean plane (and mean pole), a settings toolbox (line thickness, pole size, what is drawn, grid, white background), a shared interactive legend and PNG / JPEG / PDF export
+- **Click-to-locate:** click a plane in 3D or a line/pole on the stereonet and the matching table row is highlighted and scrolled into view
+- **Results table (new in 3.0):** row check boxes with **Show in viewer** (limits both the 3D view and the stereonet to the checked structures), click-to-sort columns and Excel-style per-column filters (text, `>10`, `<=5`, `10..20`)
 - Dark blue interface. Runs entirely locally – files never leave your computer.
 
 ## Controls (3D viewer)
@@ -35,7 +38,7 @@ It is a batch version of the single-measurement [Oriented Core Structural Calcul
 
 ## Running
 
-**Windows executable:** download `Dist/Orion-v2.1.exe` and run it. It opens the app in an Edge or Chrome app window (one of them must be installed) and works offline.
+**Windows executable:** download `Dist/Orion-v3.0.exe` and run it. It opens the app in an Edge or Chrome app window (one of them must be installed) and works offline.
 
 **From source:** open `index.html` in a modern browser (all libraries are bundled in `vendor/`).
 
@@ -50,20 +53,20 @@ It is a batch version of the single-measurement [Oriented Core Structural Calcul
 
 ## Installing the signed MSIX (Windows 10/11)
 
-**Quick install:** download the whole `Dist` folder contents (`Install-Orion.bat`, `Install-Orion.ps1`, `Orion-Certificate.cer`, `Orion-v2.1.msix`) into one folder and double-click **`Install-Orion.bat`**. Approve the administrator prompt once; it trusts the certificate and installs the app.
+**Quick install:** download the whole `Dist` folder contents (`Install-Orion.bat`, `Install-Orion.ps1`, `Orion-Certificate.cer`, `Orion-v3.0.msix`) into one folder and double-click **`Install-Orion.bat`**. Approve the administrator prompt once; it trusts the certificate and installs the app.
 
-**Manual install:** `Dist/Orion-v2.1.msix` is signed with a self-signed certificate, so Windows must be told to trust it once per computer.
+**Manual install:** `Dist/Orion-v3.0.msix` is signed with a self-signed certificate, so Windows must be told to trust it once per computer.
 
-1. Download `Orion-Certificate.cer` and `Orion-v2.1.msix` from the `Dist` folder.
+1. Download `Orion-Certificate.cer` and `Orion-v3.0.msix` from the `Dist` folder.
 2. Right-click `Orion-Certificate.cer` → **Install Certificate** → **Local Machine** (administrator approval required) → **Place all certificates in the following store** → **Browse** → **Trusted People** → **Finish**.
-3. Double-click `Orion-v2.1.msix` → **Install**. Orion then appears in the Start menu.
+3. Double-click `Orion-v3.0.msix` → **Install**. Orion then appears in the Start menu.
 4. Only install the certificate if you received it directly from the developer. It is limited to the *Trusted People* store, which is enough for this package.
 
 Future versions signed with the same certificate install without repeating step 2. Developers: rebuild the package with `build_exe/build_msix.ps1` (needs `certs/OrionSigning.pfx`, which is never committed).
 
 ## Time lock and permissions
 
-Version 2.1 is time-locked and stops working after **31 December 2026**. After that date, or to request permission to use the app, please contact the developer, **Dr. L. Hulijeli**.
+Version 3.0 is time-locked and stops working after **31 December 2026**. After that date, or to request permission to use the app, please contact the developer, **Dr. L. Hulijeli**.
 
 ## Disclaimer
 

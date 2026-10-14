@@ -1,4 +1,4 @@
-# Orion one-click installer: trusts the Orion certificate (Trusted People) and installs the app.
+﻿# Orion one-click installer: trusts the Orion certificate (Trusted People) and installs the app.
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
@@ -7,8 +7,8 @@ if (-not $isAdmin) {
 }
 try {
   $cer = Join-Path $here 'Orion-Certificate.cer'
-  $msix = Join-Path $here 'Orion-v2.1.msix'
-  if (-not (Test-Path $cer) -or -not (Test-Path $msix)) { throw "Orion-Certificate.cer and Orion-v2.1.msix must be in the same folder as this installer." }
+  $msix = Join-Path $here 'Orion-v3.0.msix'
+  if (-not (Test-Path $cer) -or -not (Test-Path $msix)) { throw "Orion-Certificate.cer and Orion-v3.0.msix must be in the same folder as this installer." }
   Write-Host "Installing Orion certificate (Trusted People)..."
   Import-Certificate -FilePath $cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople | Out-Null
   Write-Host "Installing Orion..."

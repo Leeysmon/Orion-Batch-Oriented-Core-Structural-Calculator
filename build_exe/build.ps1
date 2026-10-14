@@ -2,8 +2,8 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 Set-Location $root
 $builds = @(
-  @{ name = 'Orion-v2.1'; cfg = "window.ORION_CONFIG = { version: '2.1', year: 2026, expires: '2026-12-31' };" },
-  @{ name = 'Orion-v2.0'; cfg = "window.ORION_CONFIG = { version: '2.0', year: 2026, expires: null };" }
+  @{ name = 'Orion-v3.0'; cfg = "window.ORION_CONFIG = { version: '3.0', year: 2026, expires: '2026-12-31' };" },
+  @{ name = 'Orion-v3.0_admin'; cfg = "window.ORION_CONFIG = { version: '3.0', year: 2026, expires: null };" }
 )
 foreach ($b in $builds) {
   $stage = Join-Path $root "build_exe\stage_$($b.name)"

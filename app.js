@@ -2,6 +2,7 @@
   'use strict';
   if (window.OrionLock && window.OrionLock.expired) return;
   const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const { planeFromAlphaBeta, planeBasis, buildTrace, norm360, D2R } = window.Calc;
 
   /* ---------------------------------------------------------------- fields */
@@ -55,6 +56,7 @@
     tables: {}, // key -> {fileName, wb, sheet, headers, rows, map}
     opts: { dipConv: 'neg', depthMode: 'top' },
     results: [], holes: new Map(), prec: 0, selected: -1,
+    checked: new Set(), only: null, sort: { col: -1, dir: 1 }, tf: {}, shown: [],
   };
 
   /* ---------------------------------------------------------------- loading */
@@ -258,6 +260,7 @@
     state.holes = holes;
     state.results = results;
     state.selected = -1;
+    state.checked = new Set(); state.only = null; state.sort = { col: -1, dir: 1 }; state.tf = {};
     return results;
   }
 
@@ -267,21 +270,113 @@
   const pad = (v) => (Number.isFinite(v) ? Math.round(v * Math.pow(10, state.prec)) / Math.pow(10, state.prec) : v);
 
   function renderTable() {
+    const cols = TCOLS();
+    const arrow = (i) => (state.sort.col === i ? (state.sort.dir > 0 ? ' ▲' : ' ▼') : '');
+    $('#tbl').innerHTML = `<thead><tr><th class="ck"><input type="checkbox" id="chkAll" title="Check / uncheck all rows currently listed"></th>${cols.map((c, i) => `<th class="sortable" data-c="${i}" title="Click to sort">${c.h}<span>${arrow(i)}</span></th>`).join('')}</tr>
+      <tr class="frow"><th class="ck"></th>${cols.map((c, i) => `<th><input type="text" data-f="${i}" placeholder="filter" value="${esc(state.tf[i] || '')}" title="Text contains · numbers: &gt;10, &lt;=5, =3, 10..20"></th>`).join('')}</tr></thead><tbody></tbody>`;
+    $('#tbl thead').onclick = (e) => {
+      const th = e.target.closest('th.sortable');
+      if (!th || e.target.tagName === 'INPUT') return;
+      const i = Number(th.dataset.c);
+      state.sort = state.sort.col !== i ? { col: i, dir: 1 } : state.sort.dir > 0 ? { col: i, dir: -1 } : { col: -1, dir: 1 };
+      $$('#tbl th.sortable').forEach((t) => { t.lastChild.textContent = arrow(Number(t.dataset.c)); });
+      renderBody();
+    };
+    $('#tbl thead').oninput = (e) => {
+      const f = e.target.dataset.f;
+      if (f !== undefined) { state.tf[f] = e.target.value; renderBody(); }
+    };
+    $('#chkAll').onchange = (e) => {
+      state.shown.forEach((r) => { if (!r.error) e.target.checked ? state.checked.add(r.idx) : state.checked.delete(r.idx); });
+      renderBody();
+    };
+    $('#tbl tbody').onclick = (e) => {
+      const tr = e.target.closest('tr');
+      if (!tr) return;
+      const i = Number(tr.dataset.i);
+      if (e.target.matches('input[type=checkbox]')) {
+        e.target.checked ? state.checked.add(i) : state.checked.delete(i);
+        tr.classList.toggle('chk', e.target.checked); updateTableUi();
+      } else select(i, true);
+    };
+    renderBody();
+    $('.tablewrap').style.setProperty('--thh', $('#tbl thead tr').offsetHeight - 1 + 'px');
+  }
+
+  function TCOLS() {
+    const n = (v) => (Number.isFinite(v) ? v : '');
+    return [
+      { h: '#', v: (r) => r.row, n: 1 },
+      { h: 'Hole', v: (r) => r.holeId },
+      { h: 'Depth (m)', v: (r) => (r.error ? '' : r.depth), n: 1, f: (r) => (r.error ? '' : r.depth.toFixed(2)) },
+      { h: 'Type', v: (r) => r.type },
+      { h: 'Ori-line', v: (r) => r.oriLine },
+      { h: 'Vein Min. 1', v: (r) => r.min[0].name },
+      { h: 'Alpha', v: (r) => n(r.alpha), n: 1 },
+      { h: 'Beta', v: (r) => n(r.beta), n: 1 },
+      { h: 'Dip', v: (r) => (r.error ? '' : r.dip), n: 1, f: (r) => (r.error ? '' : fmt(r.dip)) },
+      { h: 'Dip dir.', v: (r) => (r.error ? '' : r.dipDir), n: 1, f: (r) => (r.error ? '' : fmt(r.dipDir)) },
+      { h: 'Strike', v: (r) => (r.error ? '' : r.strike), n: 1, f: (r) => (r.error ? '' : fmt(r.strike)) },
+      { h: 'Hole az / inc', v: (r) => (r.error ? '' : r.holeAz), n: 1, f: (r) => (r.error ? '' : r.holeAz.toFixed(1) + ' / ' + r.holeInc.toFixed(1)) },
+      { h: 'Status', v: (r) => r.error || 'OK' },
+    ];
+  }
+
+  function rowMatches(c, r, q) {
+    q = q.trim();
+    if (!q) return true;
+    const v = c.v(r), txt = String(c.f ? c.f(r) : v).toLowerCase();
+    let m;
+    if (c.n && (m = q.match(/^(>=|<=|!=|>|<|=)\s*(-?\d+(?:\.\d+)?)$/))) {
+      if (v === '') return false;
+      const x = Number(m[2]);
+      return { '>': v > x, '<': v < x, '>=': v >= x, '<=': v <= x, '=': v === x, '!=': v !== x }[m[1]];
+    }
+    if (c.n && (m = q.match(/^(-?\d+(?:\.\d+)?)\s*\.\.\s*(-?\d+(?:\.\d+)?)$/))) return v !== '' && v >= Math.min(+m[1], +m[2]) && v <= Math.max(+m[1], +m[2]);
+    return txt.includes(q.toLowerCase());
+  }
+
+  function renderBody() {
+    const cols = TCOLS();
+    let rows = state.results.filter((r) => cols.every((c, i) => rowMatches(c, r, state.tf[i] || '')));
+    if (state.sort.col >= 0) {
+      const c = cols[state.sort.col], d = state.sort.dir;
+      rows = rows.slice().sort((a, b) => {
+        const x = c.v(a), y = c.v(b);
+        if (x === '' && y === '') return 0;
+        if (x === '') return 1;
+        if (y === '') return -1;
+        return (c.n ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true, sensitivity: 'base' })) * d;
+      });
+    }
+    state.shown = rows;
+    $('#tbl tbody').innerHTML = rows.map((r) => `<tr data-i="${r.idx}" class="${r.error ? 'bad' : ''} ${r.idx === state.selected ? 'sel' : ''} ${state.checked.has(r.idx) ? 'chk' : ''}">
+      <td class="ck"><input type="checkbox" ${r.error ? 'disabled' : ''} ${state.checked.has(r.idx) ? 'checked' : ''}></td>${cols.map((c) => `<td>${esc(String(c.f ? c.f(r) : c.v(r)))}</td>`).join('')}</tr>`).join('');
+    updateTableUi();
+  }
+
+  function updateTableUi() {
     const ok = state.results.filter((r) => !r.error).length;
-    $('#tblMsg').textContent = `${ok} calculated, ${state.results.length - ok} skipped`;
-    const cols = ['#', 'Hole', 'Depth (m)', 'Type', 'Ori-line', 'Vein Min. 1', 'Alpha', 'Beta', 'Dip', 'Dip dir.', 'Strike', 'Hole az / inc', 'Status'];
-    $('#tbl').innerHTML = `<thead><tr>${cols.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody>${state.results.map((r) => `<tr data-i="${r.idx}" class="${r.error ? 'bad' : ''} ${r.idx === state.selected ? 'sel' : ''}">
-      <td>${r.row}</td><td>${esc(r.holeId)}</td><td>${r.error ? '' : r.depth.toFixed(2)}</td><td>${esc(r.type)}</td><td>${esc(r.oriLine)}</td><td>${esc(r.min[0].name)}</td>
-      <td>${r.alpha}</td><td>${r.beta}</td><td>${r.error ? '' : fmt(r.dip)}</td><td>${r.error ? '' : fmt(r.dipDir)}</td><td>${r.error ? '' : fmt(r.strike)}</td>
-      <td>${r.error ? '' : r.holeAz.toFixed(1) + ' / ' + r.holeInc.toFixed(1)}</td><td>${r.error ? esc(r.error) : 'OK'}</td></tr>`).join('')}</tbody>`;
-    $('#tbl tbody').onclick = (e) => { const tr = e.target.closest('tr'); if (tr) select(Number(tr.dataset.i), true); };
+    const nChk = state.checked.size, listed = state.shown.filter((r) => !r.error);
+    $('#tblMsg').textContent = `${ok} calculated, ${state.results.length - ok} skipped · listing ${state.shown.length} of ${state.results.length} · ${nChk} checked`;
+    const all = $('#chkAll');
+    if (all) { all.checked = listed.length > 0 && listed.every((r) => state.checked.has(r.idx)); all.indeterminate = !all.checked && listed.some((r) => state.checked.has(r.idx)); }
+    $('#btnShowSel').classList.toggle('hidden', !nChk);
+    $('#btnShowSel').textContent = `Show in viewer (${nChk})`;
+    $('#btnUncheck').classList.toggle('hidden', !nChk);
+    $('#btnShowAll').classList.toggle('hidden', !state.only);
+    $('#btnClearTf').classList.toggle('hidden', !(state.sort.col >= 0 || Object.values(state.tf).some((v) => v)));
+    $('#onlyNote').textContent = state.only ? `Viewers are limited to ${state.only.size} checked structure(s).` : '';
   }
 
   function select(i, fly) {
     state.selected = i;
     document.querySelectorAll('#tbl tr.sel').forEach((e) => e.classList.remove('sel'));
     const tr = $(`#tbl tr[data-i="${i}"]`);
-    if (tr) { tr.classList.add('sel'); if (fly) tr.scrollIntoView({ block: 'nearest' }); }
+    if (tr) {
+      tr.classList.add('sel');
+      if (fly) { const w = $('.tablewrap'), hh = $('#tbl thead').offsetHeight; w.scrollTo({ top: Math.max(0, tr.offsetTop - hh - w.clientHeight / 2 + tr.offsetHeight), behavior: 'smooth' }); }
+    }
     const r = state.results[i];
     const ok = r && !r.error;
     $('#selTitle').textContent = r ? `${r.holeId} @ ${ok ? r.depth.toFixed(2) + ' m' : '—'}` : '—';
@@ -292,6 +387,7 @@
     $('#rInfo').textContent = !r ? 'Click a plane or a table row.' : ok ? `${r.type || 'structure'} · α ${r.alpha}° β ${r.beta}° · hole ${r.holeAz.toFixed(1)}° / ${r.holeInc.toFixed(1)}°` : r.error;
     drawCompass(ok ? r : null);
     V.updateSelection();
+    SN.draw();
   }
 
   /* ---------------------------------------------------------------- compass */
@@ -551,25 +647,28 @@
   V.refresh = function () {
     V.items.forEach((it) => {
       const r = it.res;
-      it.inScope = (V.hole === 'all' || r.holeId.toLowerCase() === V.hole) && r.depth >= V.depMin - 1e-9 && r.depth <= V.depMax + 1e-9;
+      it.inScope = (V.hole === 'all' || r.holeId.toLowerCase() === V.hole) && r.depth >= V.depMin - 1e-9 && r.depth <= V.depMax + 1e-9 && (!state.only || state.only.has(r.idx));
       it.group.visible = it.inScope && !V.hidden.has(it.cat);
     });
     V.holesG.children.forEach((o) => { o.visible = (V.hole === 'all' || o.userData.hole === V.hole) && (!o.userData.label || $('#chkLabels').checked); });
     V.legend();
     V.updateSelection();
+    SN.draw();
   };
 
   V.legend = function () {
-    const el = $('#legend');
-    el.classList.toggle('hidden', !$('#chkLegend').checked);
+    $('#legend').classList.toggle('hidden', !$('#chkLegend').checked);
     const counts = new Map();
     V.items.forEach((it) => { if (it.inScope) counts.set(it.cat, (counts.get(it.cat) || 0) + 1); });
     const title = $('#selColor').selectedOptions[0].textContent;
-    el.innerHTML = `<h4><span>${esc(title)}</span><span><a data-all="1">all</a> · <a data-all="0">none</a></span></h4>` + V.cats.map((c) =>
-      `<div class="leg ${V.hidden.has(c.key) ? 'off' : ''}" data-k="${esc(c.key)}"><i style="background:${V.catColor.get(c.key)}"></i><span>${esc(c.name)}</span><em>${counts.get(c.key) || 0}</em></div>`).join('') +
-      '<div class="leg note"><i></i><span>Light = hanging wall<br>Dark = foot wall</span></div>';
-    el.querySelectorAll('.leg').forEach((d) => (d.onclick = () => { const k = d.dataset.k; V.hidden.has(k) ? V.hidden.delete(k) : V.hidden.add(k); V.refresh(); }));
-    el.querySelectorAll('a[data-all]').forEach((a) => (a.onclick = () => { V.hidden = a.dataset.all === '1' ? new Set() : new Set(V.cats.map((c) => c.key)); V.refresh(); }));
+    ['#legend', '#slegend'].forEach((sel) => {
+      const el = $(sel);
+      el.innerHTML = `<h4><span>${esc(title)}</span><span><a data-all="1">all</a> · <a data-all="0">none</a></span></h4>` + V.cats.map((c) =>
+        `<div class="leg ${V.hidden.has(c.key) ? 'off' : ''}" data-k="${esc(c.key)}"><i style="background:${V.catColor.get(c.key)}"></i><span>${esc(c.name)}</span><em>${counts.get(c.key) || 0}</em></div>`).join('') +
+        (sel === '#legend' ? '<div class="leg note"><i></i><span>Light = hanging wall<br>Dark = foot wall</span></div>' : '');
+      el.querySelectorAll('.leg[data-k]').forEach((d) => (d.onclick = () => { const k = d.dataset.k; V.hidden.has(k) ? V.hidden.delete(k) : V.hidden.add(k); V.refresh(); }));
+      el.querySelectorAll('a[data-all]').forEach((a) => (a.onclick = () => { V.hidden = a.dataset.all === '1' ? new Set() : new Set(V.cats.map((c) => c.key)); V.refresh(); }));
+    });
   };
 
   V.updateSelection = function () {
@@ -648,6 +747,155 @@
     }
   }
 
+  /* ---------------------------------------------------------------- stereonet (equal-area, lower hemisphere) */
+  const SN = { hits: [] };
+  const SNs = () => ({
+    lines: $('#snLines').checked, poles: $('#snPoles').checked, mean: $('#snMean').checked, meanPole: $('#snMeanPole').checked,
+    grid: $('#snGrid').checked, lw: Number($('#snLw').value), ps: Number($('#snPs').value), white: $('#snWhite').checked,
+  });
+  const poleVec = (dip, dd) => { const d = dip * D2R, a = dd * D2R; return [-Math.sin(d) * Math.sin(a), -Math.sin(d) * Math.cos(a), -Math.cos(d)]; };
+
+  // Mean plane from the principal axis of the pole scatter matrix (handles planes whose poles straddle the net).
+  SN.mean = function (items) {
+    if (!items.length) return null;
+    const P = items.map((it) => poleVec(it.res.dip, it.res.dipDir));
+    const T = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    P.forEach((p) => { for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) T[i][j] += p[i] * p[j]; });
+    let v = P[0].slice();
+    for (let k = 0; k < 200; k++) {
+      const w = [0, 1, 2].map((i) => T[i][0] * v[0] + T[i][1] * v[1] + T[i][2] * v[2]);
+      const l = Math.hypot(...w) || 1; v = w.map((x) => x / l);
+    }
+    if (v[2] > 0) v = v.map((x) => -x);
+    const u = v.map((x) => -x);
+    return { n: items.length, pole: v, dip: Math.acos(Math.min(1, Math.max(-1, u[2]))) / D2R, dipDir: norm360(Math.atan2(u[0], u[1]) / D2R) };
+  };
+
+  SN.render = function (g, w, h, st, o) {
+    const dark = !st.white, ink = dark ? '#e3eefc' : '#111', bg = dark ? '#0a1a2e' : '#ffffff';
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    const R = Math.min(w - 120, h - 90) / 2, cx = w / 2, cy = h / 2 + 8;
+    const proj = (v) => {
+      const hh = Math.hypot(v[0], v[1]);
+      if (hh < 1e-12) return [cx, cy];
+      const r = R * Math.SQRT2 * Math.sin(Math.acos(Math.min(1, Math.max(0, -v[2]))) / 2);
+      return [cx + (r * v[0]) / hh, cy - (r * v[1]) / hh];
+    };
+    g.save();
+    g.beginPath(); g.arc(cx, cy, R, 0, 2 * Math.PI); g.fillStyle = dark ? '#0d2038' : '#fff'; g.fill(); g.clip();
+    if (st.grid) {
+      g.strokeStyle = dark ? '#35557c' : '#c8c8c8'; g.lineWidth = 0.8; g.setLineDash([2, 3]);
+      for (let p = 10; p < 90; p += 10) { const r = R * Math.SQRT2 * Math.sin(((90 - p) * D2R) / 2); g.beginPath(); g.arc(cx, cy, r, 0, 2 * Math.PI); g.stroke(); }
+      for (let a = 0; a < 360; a += 15) { const t = a * D2R; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + R * Math.sin(t), cy - R * Math.cos(t)); g.stroke(); }
+      g.setLineDash([]);
+    }
+    g.strokeStyle = ink; g.lineWidth = 0.8;
+    g.beginPath(); g.moveTo(cx, cy - R); g.lineTo(cx, cy + R); g.moveTo(cx - R, cy); g.lineTo(cx + R, cy); g.stroke();
+
+    const items = V.items.filter((it) => it.group.visible);
+    const geo = items.map((it) => {
+      const d = it.res.dip * D2R, a = it.res.dipDir * D2R;
+      const s = [-Math.cos(a), Math.sin(a), 0], dn = [Math.sin(a) * Math.cos(d), Math.cos(a) * Math.cos(d), -Math.sin(d)];
+      const pts = [];
+      for (let i = 0; i <= 90; i++) { const t = (Math.PI * i) / 90, c = Math.cos(t), sn = Math.sin(t); pts.push(proj([c * s[0] + sn * dn[0], c * s[1] + sn * dn[1], c * s[2] + sn * dn[2]])); }
+      return { it, pts, pole: proj(poleVec(it.res.dip, it.res.dipDir)), col: V.catColor.get(it.cat) || '#888' };
+    });
+    if (o && o.hits) SN.hits = [];
+    const path = (pts) => { g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); };
+    if (st.lines) geo.forEach((q) => { g.strokeStyle = q.col; g.lineWidth = st.lw; g.globalAlpha = 0.9; path(q.pts); g.stroke(); });
+    g.globalAlpha = 1;
+    if (st.poles) geo.forEach((q) => { g.beginPath(); g.arc(q.pole[0], q.pole[1], st.ps, 0, 2 * Math.PI); g.fillStyle = q.col; g.fill(); g.strokeStyle = dark ? '#0a1a2e' : '#222'; g.lineWidth = 1; g.stroke(); });
+    const sel = geo.find((q) => q.it.res.idx === state.selected);
+    if (sel) {
+      if (st.lines) { g.strokeStyle = dark ? '#fff' : '#000'; g.lineWidth = st.lw + 3; path(sel.pts); g.stroke(); g.strokeStyle = sel.col; g.lineWidth = st.lw + 1; path(sel.pts); g.stroke(); }
+      g.beginPath(); g.arc(sel.pole[0], sel.pole[1], st.ps + 4, 0, 2 * Math.PI); g.strokeStyle = dark ? '#fff' : '#000'; g.lineWidth = 2; g.stroke();
+      if (!st.poles) { g.beginPath(); g.arc(sel.pole[0], sel.pole[1], st.ps, 0, 2 * Math.PI); g.fillStyle = sel.col; g.fill(); }
+    }
+    const m = SN.mean(items); SN.meanRes = m;
+    if (m && st.mean) {
+      const d = m.dip * D2R, a = m.dipDir * D2R;
+      const s = [-Math.cos(a), Math.sin(a), 0], dn = [Math.sin(a) * Math.cos(d), Math.cos(a) * Math.cos(d), -Math.sin(d)], pts = [];
+      for (let i = 0; i <= 90; i++) { const t = (Math.PI * i) / 90, c = Math.cos(t), sn = Math.sin(t); pts.push(proj([c * s[0] + sn * dn[0], c * s[1] + sn * dn[1], c * s[2] + sn * dn[2]])); }
+      g.setLineDash([9, 6]); g.lineWidth = st.lw + 3.5; g.strokeStyle = '#000'; path(pts); g.stroke();
+      g.lineWidth = st.lw + 1.2; g.strokeStyle = '#ff2020'; path(pts); g.stroke(); g.setLineDash([]);
+    }
+    g.restore();
+    if (m && st.meanPole) {
+      const p = proj(m.pole), k = st.ps + 3;
+      g.lineCap = 'round';
+      [['#000', 7], ['#ff2020', 3.5]].forEach(([c, lw]) => { g.strokeStyle = c; g.lineWidth = lw; g.beginPath(); g.moveTo(p[0] - k, p[1] - k); g.lineTo(p[0] + k, p[1] + k); g.moveTo(p[0] + k, p[1] - k); g.lineTo(p[0] - k, p[1] + k); g.stroke(); });
+      g.lineCap = 'butt';
+    }
+    g.strokeStyle = ink; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, R, 0, 2 * Math.PI); g.stroke();
+    g.fillStyle = ink; g.font = '12px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (let a = 0; a < 360; a += 45) { const t = a * D2R; g.fillText(a + '°', cx + (R + 18) * Math.sin(t), cy - (R + 18) * Math.cos(t)); }
+    if (o && o.title) {
+      g.textAlign = 'left'; g.font = 'bold 14px sans-serif'; g.fillText(o.title, 14, 22);
+      g.font = '12px sans-serif'; g.fillStyle = dark ? '#8fa9c8' : '#444';
+      g.fillText(`Equal-area · lower hemisphere · ${items.length} structure(s)` + (m ? ` · mean plane ${fmt3(m.dipDir)}° dip dir / ${fmt3(m.dip)}° dip` : ''), 14, 42);
+    }
+    if (o && o.legend) {
+      const lh = 20, lw = 190, hh = lh * (V.cats.length + 1) + 12, x = w - lw - 12, y = 12;
+      const cnt = new Map(); items.forEach((it) => cnt.set(it.cat, (cnt.get(it.cat) || 0) + 1));
+      g.fillStyle = dark ? 'rgba(15,31,53,.92)' : '#f4f4f4'; g.fillRect(x, y, lw, hh); g.strokeStyle = dark ? '#25405f' : '#999'; g.strokeRect(x, y, lw, hh);
+      g.textAlign = 'left'; g.fillStyle = dark ? '#8fa9c8' : '#444'; g.font = 'bold 11px sans-serif'; g.fillText($('#selColor').selectedOptions[0].textContent.toUpperCase(), x + 10, y + 8 + lh * 0.55);
+      V.cats.forEach((cat, i) => {
+        const yy = y + 8 + lh * (i + 1), off = V.hidden.has(cat.key);
+        g.globalAlpha = off ? 0.4 : 1; g.fillStyle = V.catColor.get(cat.key); g.fillRect(x + 10, yy + 3, 14, 14);
+        g.fillStyle = ink; g.font = '12px sans-serif'; g.fillText(`${cat.name}: ${cnt.get(cat.key) || 0}`, x + 32, yy + 11); g.globalAlpha = 1;
+      });
+    }
+    if (o && o.hits) {
+      SN.hits = geo.map((q) => ({ idx: q.it.res.idx, pts: st.lines ? q.pts : null, pole: st.poles ? q.pole : null }));
+    }
+  };
+
+  SN.draw = function () {
+    const cv = $('#sn');
+    if (!cv || !state.results.length) return;
+    const w = cv.clientWidth, h = cv.clientHeight;
+    if (!w || !h) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    SN.render(g, w, h, SNs(), { hits: true });
+    const m = SN.meanRes;
+    $('#snInfo').innerHTML = m
+      ? `<b>Mean plane</b> of ${m.n} structure${m.n > 1 ? 's' : ''} shown<br>Dip dir. <b>${fmt3(m.dipDir)}°</b> · Dip <b>${fmt3(m.dip)}°</b><br>Strike (RHR) <b>${fmt3(norm360(m.dipDir - 90))}°</b><br>Mean pole: trend ${fmt3(norm360(Math.atan2(m.pole[0], m.pole[1]) / D2R))}° · plunge ${fmt3(Math.asin(-m.pole[2]) / D2R)}°`
+      : 'No structures shown.';
+  };
+
+  SN.pick = function (x, y) {
+    let best = null, bd = 1e9;
+    const st = SNs();
+    SN.hits.forEach((q) => {
+      let d = 1e9;
+      if (q.pole) d = Math.min(d, Math.hypot(x - q.pole[0], y - q.pole[1]) - st.ps);
+      if (q.pts) for (let i = 1; i < q.pts.length; i++) {
+        const [ax, ay] = q.pts[i - 1], [bx, by] = q.pts[i], dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy || 1;
+        const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2));
+        d = Math.min(d, Math.hypot(x - ax - t * dx, y - ay - t * dy));
+      }
+      if (d < bd) { bd = d; best = q; }
+    });
+    return best && bd <= 6 ? best.idx : -1;
+  };
+
+  SN.export = function () {
+    const fmtSel = $('#selSnExport').value, c = document.createElement('canvas'), W = 1400, H = 1100, k = 2;
+    c.width = W * k; c.height = H * k;
+    const g = c.getContext('2d'); g.scale(k, k);
+    SN.render(g, W, H, SNs(), { title: 'Orion – Stereonet', legend: $('#chkLegend').checked });
+    const base = 'orion_stereonet';
+    if (fmtSel === 'png') download(c.toDataURL('image/png'), base + '.png');
+    else if (fmtSel === 'jpeg') download(c.toDataURL('image/jpeg', 0.92), base + '.jpg');
+    else {
+      const { jsPDF } = window.jspdf, w = 297, h = (297 * H) / W;
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [w, h] });
+      pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, w, h); pdf.save(base + '.pdf');
+    }
+  };
+
   /* ---------------------------------------------------------------- wiring */
   function fillHoleSelect() {
     const names = [...state.holes.values()].filter((h) => !h.error && state.results.some((r) => !r.error && r.holeId.toLowerCase() === h.name.toLowerCase())).map((h) => h.name);
@@ -697,9 +945,37 @@
   $('#btnReset3d').onclick = () => V.fit(false);
   $('#btnNorth').onclick = () => V.fit(true);
   $('#btnFull').onclick = () => { const w = $('#vwrap'); document.fullscreenElement ? document.exitFullscreen() : w.requestFullscreen(); };
-  document.addEventListener('fullscreenchange', () => { $('#btnFull').textContent = document.fullscreenElement ? '✕ Exit' : '⛶ Maximise'; });
+  document.addEventListener('fullscreenchange', () => { $('#btnFull').textContent = document.fullscreenElement === $('#vwrap') ? '✕ Exit' : '⛶ Maximise'; });
   $('#btnExport').onclick = exportView;
   $('#opVal').textContent = '50% transparent';
+
+  // stereonet controls
+  ['snLines', 'snPoles', 'snMean', 'snMeanPole', 'snGrid', 'snWhite'].forEach((id) => ($('#' + id).onchange = () => SN.draw()));
+  ['snLw', 'snPs'].forEach((id) => ($('#' + id).oninput = (e) => { $('#' + id + 'V').textContent = e.target.value; SN.draw(); }));
+  $('#sn').addEventListener('click', (e) => {
+    const b = e.currentTarget.getBoundingClientRect(), i = SN.pick(e.clientX - b.left, e.clientY - b.top);
+    if (i >= 0) select(i, true);
+  });
+  $('#sn').addEventListener('mousemove', (e) => { const b = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.cursor = SN.pick(e.clientX - b.left, e.clientY - b.top) >= 0 ? 'pointer' : 'default'; });
+  new ResizeObserver(() => SN.draw()).observe($('#swrap'));
+  $('#btnSnFull').onclick = () => { const w = $('#swrap'); document.fullscreenElement ? document.exitFullscreen() : w.requestFullscreen(); };
+  document.addEventListener('fullscreenchange', () => { $('#btnSnFull').textContent = document.fullscreenElement === $('#swrap') ? '✕ Exit' : '⛶ Maximise'; });
+  $('#btnSnExport').onclick = SN.export;
+
+  // table → viewers
+  const resetViewerScope = () => {
+    const changed = V.hole !== 'all';
+    $('#selHole').value = 'all'; V.hole = 'all';
+    if (changed) { V.computeExtent(); V.rebuild(); }
+    V.setDepthBounds();
+  };
+  $('#btnShowSel').onclick = () => {
+    state.only = new Set(state.checked);
+    resetViewerScope(); V.hidden = new Set(); V.refresh(); V.fit(false); updateTableUi();
+  };
+  $('#btnShowAll').onclick = () => { state.only = null; V.hidden = new Set(); V.refresh(); V.fit(false); updateTableUi(); };
+  $('#btnUncheck').onclick = () => { state.checked.clear(); renderBody(); };
+  $('#btnClearTf').onclick = () => { state.tf = {}; state.sort = { col: -1, dir: 1 }; renderTable(); };
 
   function tableAoa() {
     const head = ['Row', 'HoleID', 'Depth_mid', 'Depth_top', 'Depth_bottom', 'Type', 'Ori_line', 'Alpha', 'Beta', 'Gamma', 'Core_length_cm', 'Core_thickness_cm', 'Min1', 'Min1_pct', 'Min2', 'Min2_pct', 'Min3', 'Min3_pct', 'Min4', 'Min4_pct', 'Vein_style', 'Comment', 'Hole_azimuth', 'Hole_inclination_down', 'True_dip', 'Dip_direction', 'Strike_RHR', 'X', 'Y', 'Z', 'Status'];
