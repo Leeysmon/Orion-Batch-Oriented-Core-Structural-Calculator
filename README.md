@@ -50,7 +50,9 @@ It is a batch version of the single-measurement [Oriented Core Structural Calcul
 
 ## Installing the signed MSIX (Windows 10/11)
 
-`Dist/Orion-v2.1.msix` is signed with a self-signed certificate, so Windows must be told to trust it once per computer.
+**Quick install:** download the whole `Dist` folder contents (`Install-Orion.bat`, `Install-Orion.ps1`, `Orion-Certificate.cer`, `Orion-v2.1.msix`) into one folder and double-click **`Install-Orion.bat`**. Approve the administrator prompt once; it trusts the certificate and installs the app.
+
+**Manual install:** `Dist/Orion-v2.1.msix` is signed with a self-signed certificate, so Windows must be told to trust it once per computer.
 
 1. Download `Orion-Certificate.cer` and `Orion-v2.1.msix` from the `Dist` folder.
 2. Right-click `Orion-Certificate.cer` → **Install Certificate** → **Local Machine** (administrator approval required) → **Place all certificates in the following store** → **Browse** → **Trusted People** → **Finish**.
