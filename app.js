@@ -260,7 +260,7 @@
     state.holes = holes;
     state.results = results;
     state.selected = -1;
-    state.checked = new Set(); state.only = null; state.sort = { col: -1, dir: 1 }; state.tf = {};
+    state.checked = new Set(); state.only = null; state.fscope = null; state.sort = { col: -1, dir: 1 }; state.tf = {};
     return results;
   }
 
@@ -326,19 +326,33 @@
     q = q.trim();
     if (!q) return true;
     const v = c.v(r), txt = String(c.f ? c.f(r) : v).toLowerCase();
-    let m;
-    if (c.n && (m = q.match(/^(>=|<=|!=|>|<|=)\s*(-?\d+(?:\.\d+)?)$/))) {
-      if (v === '') return false;
-      const x = Number(m[2]);
-      return { '>': v > x, '<': v < x, '>=': v >= x, '<=': v <= x, '=': v === x, '!=': v !== x }[m[1]];
-    }
-    if (c.n && (m = q.match(/^(-?\d+(?:\.\d+)?)\s*\.\.\s*(-?\d+(?:\.\d+)?)$/))) return v !== '' && v >= Math.min(+m[1], +m[2]) && v <= Math.max(+m[1], +m[2]);
-    return txt.includes(q.toLowerCase());
+    const one = (t) => {
+      t = t.trim();
+      if (!t) return null;
+      let m;
+      if (c.n && (m = t.match(/^(>=|<=|!=|>|<|=)\s*(-?\d+(?:\.\d+)?)$/))) {
+        if (v === '') return false;
+        const x = Number(m[2]);
+        return { '>': v > x, '<': v < x, '>=': v >= x, '<=': v <= x, '=': v === x, '!=': v !== x }[m[1]];
+      }
+      if (c.n && (m = t.match(/^(-?\d+(?:\.\d+)?)\s*\.\.\s*(-?\d+(?:\.\d+)?)$/))) return v !== '' && v >= Math.min(+m[1], +m[2]) && v <= Math.max(+m[1], +m[2]);
+      return txt.includes(t.toLowerCase());
+    };
+    // "a | b, c" = any of; terms starting with "!" exclude
+    const terms = q.split(/[|,;]/).map((t) => t.trim()).filter(Boolean);
+    const inc = terms.filter((t) => t[0] !== '!'), exc = terms.filter((t) => t[0] === '!' && t.length > 1).map((t) => t.slice(1));
+    if (exc.some((t) => one(t))) return false;
+    return !inc.length || inc.some((t) => one(t));
   }
 
   function renderBody() {
     const cols = TCOLS();
     let rows = state.results.filter((r) => cols.every((c, i) => rowMatches(c, r, state.tf[i] || '')));
+    const active = Object.values(state.tf).some((v) => String(v).trim());
+    const next = active ? new Set(rows.filter((r) => !r.error).map((r) => r.idx)) : null;
+    const same = (!next && !state.fscope) || (next && state.fscope && next.size === state.fscope.size && [...next].every((i) => state.fscope.has(i)));
+    state.fscope = next;
+    if (!same && V.inited && V.items.length) V.refresh();
     if (state.sort.col >= 0) {
       const c = cols[state.sort.col], d = state.sort.dir;
       rows = rows.slice().sort((a, b) => {
@@ -366,7 +380,7 @@
     $('#btnUncheck').classList.toggle('hidden', !nChk);
     $('#btnShowAll').classList.toggle('hidden', !state.only);
     $('#btnClearTf').classList.toggle('hidden', !(state.sort.col >= 0 || Object.values(state.tf).some((v) => v)));
-    $('#onlyNote').textContent = state.only ? `Viewers are limited to ${state.only.size} checked structure(s).` : '';
+    $('#onlyNote').textContent = [state.fscope ? `Viewers follow the table filters (${state.fscope.size} structure(s)).` : '', state.only ? `Limited to ${state.only.size} checked structure(s).` : ''].filter(Boolean).join(' ');
   }
 
   function select(i, fly) {
@@ -647,7 +661,7 @@
   V.refresh = function () {
     V.items.forEach((it) => {
       const r = it.res;
-      it.inScope = (V.hole === 'all' || r.holeId.toLowerCase() === V.hole) && r.depth >= V.depMin - 1e-9 && r.depth <= V.depMax + 1e-9 && (!state.only || state.only.has(r.idx));
+      it.inScope = (V.hole === 'all' || r.holeId.toLowerCase() === V.hole) && r.depth >= V.depMin - 1e-9 && r.depth <= V.depMax + 1e-9 && (!state.only || state.only.has(r.idx)) && (!state.fscope || state.fscope.has(r.idx));
       it.group.visible = it.inScope && !V.hidden.has(it.cat);
     });
     V.holesG.children.forEach((o) => { o.visible = (V.hole === 'all' || o.userData.hole === V.hole) && (!o.userData.label || $('#chkLabels').checked); });

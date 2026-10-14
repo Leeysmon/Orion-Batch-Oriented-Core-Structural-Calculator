@@ -63,6 +63,25 @@
   <!-- STEP 3 -->
   <section class="card hidden" id="step3">
     <div class="eyebrow">Step 3</div>
+    <h2>Calculated structures</h2>
+    <details class="help"><summary>ⓘ Help</summary><ul>
+      <li><b>Filters drive the viewers:</b> as soon as you type a filter, the 3D viewer and the stereonet show <b>only</b> the rows that pass the filters. The viewers' own settings (hole, depth interval, legend) can then narrow that set further, but never widen it.</li>
+      <li><b>Filter boxes</b> sit under each column heading. Text matches anywhere in the cell and is not case-sensitive. Filters in different columns are combined (AND).</li>
+      <li><b>Several values in one column (OR):</b> separate them with <code>|</code> or a comma – e.g. <code>stringer | vn</code> in <i>Type</i>, or <code>quartz, carbonate</code> in <i>Vein Min. 1</i>. Add <code>!</code> in front to exclude a value, e.g. <code>!stringer</code>.</li>
+      <li><b>Numbers</b> accept <code>&gt;10</code>, <code>&lt;=5</code>, <code>=3</code>, <code>!=0</code> or a range <code>10..20</code>; these can also be combined with <code>|</code>, e.g. <code>&lt;50 | &gt;300</code>.</li>
+      <li>Click a column heading to <b>sort</b> (ascending → descending → off).</li>
+      <li>Tick rows (or the header box to tick every listed row) and press <b>Show in viewer</b> to limit the viewers to just those rows. <b>Show all in viewer</b> removes that limit; <b>Clear sort &amp; filters</b> resets the filters.</li>
+      <li>Click a row to select it; clicking a plane in 3D or a line/pole on the stereonet selects and scrolls to its row.</li></ul></details>
+    <div class="actions" style="margin-top:0"><span class="msg" id="tblMsg"></span>
+      <button id="btnShowSel" class="primary hidden">Show in viewer</button>
+      <button id="btnShowAll" class="hidden">Show all in viewer</button>
+      <button id="btnUncheck" class="hidden">Uncheck all</button>
+      <button id="btnClearTf" class="hidden">Clear sort &amp; filters</button>
+      <span class="msg" id="onlyNote"></span>
+      <span style="margin-left:auto;display:flex;gap:8px"><button id="btnCsv">Download CSV</button><button id="btnXlsx">Download XLSX</button></span></div>
+    <div class="tablewrap"><table id="tbl"></table></div>
+
+    <div class="eyebrow" style="margin-top:30px">Step 4</div>
     <h2>Results &amp; 3D preview</h2>
     <details class="help"><summary>ⓘ Help</summary><ul>
       <li><b>Rotate</b> by dragging, <b>pan</b> by holding the left and right mouse buttons together and dragging, <b>zoom</b> with the wheel. Click a plane (or a table row) to see its strike/dip.</li>
@@ -133,11 +152,11 @@
         </div>
       </div>
     </div>
-    <div class="eyebrow" style="margin-top:26px">Step 3 · Stereonet</div>
+    <div class="eyebrow" style="margin-top:26px">Step 4 · Stereonet</div>
     <h2>Stereonet projection</h2>
     <details class="help"><summary>ⓘ Help</summary><ul>
       <li>Equal-area (Schmidt) <b>lower-hemisphere</b> net. Each structure is a <b>great circle</b> (the plane) and/or a <b>pole</b> (the normal to the plane). Colours match the 3D viewer.</li>
-      <li>It always shows the <b>same structures as the 3D viewer</b>: hole, depth interval, legend toggles and any rows sent with <b>Show in viewer</b>.</li>
+      <li>It always shows the <b>same structures as the 3D viewer</b>: table filters (Step 3), any rows sent with <b>Show in viewer</b>, and the hole, depth interval and legend toggles.</li>
       <li>The <b>dashed red line</b> is the mean plane of everything currently shown (principal axis of the poles); the red ✕ is its pole.</li>
       <li>Click a line or pole to select it – the matching table row is highlighted and scrolled into view. Use the <b>Stereonet settings</b> to change line thickness, point size and what is drawn.</li></ul></details>
     <div class="step3">
@@ -173,17 +192,6 @@
         </div>
       </div>
     </div>
-    <div class="actions"><b>Calculated structures</b><span class="msg" id="tblMsg"></span>
-      <button id="btnShowSel" class="primary hidden">Show in viewer</button>
-      <button id="btnShowAll" class="hidden">Show all in viewer</button>
-      <button id="btnUncheck" class="hidden">Uncheck all</button>
-      <button id="btnClearTf" class="hidden">Clear sort &amp; filters</button>
-      <span class="msg" id="onlyNote"></span>
-      <span style="margin-left:auto;display:flex;gap:8px"><button id="btnCsv">Download CSV</button><button id="btnXlsx">Download XLSX</button></span></div>
-    <details class="help"><summary>ⓘ Table help</summary><ul>
-      <li>Tick rows (or the header box to tick every listed row), then press <b>Show in viewer</b> to limit the 3D view and the stereonet to those structures. <b>Show all in viewer</b> restores everything.</li>
-      <li>Click a column heading to <b>sort</b> (ascending → descending → off). Type in the box under a heading to <b>filter</b>: text matches anywhere; numbers accept <code>&gt;10</code>, <code>&lt;=5</code>, <code>=3</code>, <code>!=0</code> or a range like <code>10..20</code>. Filters combine across columns.</li></ul></details>
-    <div class="tablewrap"><table id="tbl"></table></div>
   </section>
 </main>
 <footer>Right-hand rule · Alpha = plane-to-core-axis angle · Beta = clockwise from bottom-of-hole, looking down-hole</footer>

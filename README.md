@@ -24,7 +24,7 @@ It is a batch version of the single-measurement [Oriented Core Structural Calcul
     - Reset view, North-up plan, maximise, export to PNG / JPEG / PDF
 - **Stereonet (new in 3.0):** equal-area lower-hemisphere projection of the structures currently shown in the 3D viewer, with great circles and/or poles, a dashed red mean plane (and mean pole), a settings toolbox (line thickness, pole size, what is drawn, grid, white background), a shared interactive legend and PNG / JPEG / PDF export
 - **Click-to-locate:** click a plane in 3D or a line/pole on the stereonet and the matching table row is highlighted and scrolled into view
-- **Results table (new in 3.0):** row check boxes with **Show in viewer** (limits both the 3D view and the stereonet to the checked structures), click-to-sort columns and Excel-style per-column filters (text, `>10`, `<=5`, `10..20`)
+- **Results table (new in 3.0):** row check boxes with **Show in viewer** (limits both the 3D view and the stereonet to the checked structures), click-to-sort columns and Excel-style per-column filters (text, multiple values with `stringer | vn`, exclusions with `!bedding`, numbers `>10`, `<=5`, `10..20`). Table filters automatically limit the 3D viewer and stereonet; their own settings can only narrow that further
 - Dark blue interface. Runs entirely locally – files never leave your computer.
 
 ## Controls (3D viewer)
