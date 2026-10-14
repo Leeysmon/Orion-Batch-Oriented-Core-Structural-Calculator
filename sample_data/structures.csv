@@ -1,0 +1,17 @@
+Hole ID,mDepth,Ori-line,Type,Core length (cm),Core Thickness (cm),Alpha,Beta,Gamma,Vein Min. 1,Vein Min. 1 %,Vein Min. 2,Vein Min. 2 %,Vein Min. 3,Vein Min. 3 %,Vein Min. 4,Vein Min. 4 %,Vein style,Comment
+DH001,12.4,solid,vein,10,2,45,30,,Quartz,80,Pyrite,20,,,,,Massive,
+DH001,25.1,dashed,vein,8,1.5,60,120,,Carbonate,70,Quartz,30,,,,,Stockwork,
+DH001,38.7,solid,breccia,25,10,35,200,,Quartz,50,Chlorite,50,,,,,Brecciated,
+DH001,52.3,solid,vein,6,3,70,290,,Quartz,90,Pyrite,10,,,,,Massive,
+DH001,66.0,dashed,fracture,5,0.2,20,15,,,,,,,,,,,
+DH001,81.2,solid,vein,12,4,55,75,,Carbonate,85,Quartz,15,,,,,Banded,
+DH001,96.5,solid,contact,10,1,80,330,,,,,,,,,,,Contact with dolerite
+DH001,110.8,solid,vein,9,2,40,250,,Quartz,60,Carbonate,40,,,,,Comb,
+DH002,10.5,solid,vein,10,2,50,45,,Quartz,75,Pyrite,25,,,,,Massive,
+DH002,22.9,solid,bedding,5,0.5,65,160,,,,,,,,,,,
+DH002,35.4,dashed,vein,7,1,30,300,,Carbonate,100,,,,,,,Massive,
+DH002,48.8,solid,vein,15,6,75,220,,Quartz,95,,,,,,,Laminated,
+DH002,63.1,solid,breccia,30,12,25,10,,Carbonate,60,Quartz,40,,,,,Brecciated,
+DH002,79.6,solid,vein,8,2,58,100,,Quartz,85,Pyrite,15,,,,,Massive,
+DH002,95.0,dashed,fracture,4,0.1,15,260,,,,,,,,,,,
+DH002,108.3,solid,vein,11,3,62,340,,Carbonate,90,Quartz,10,,,,,Banded,

@@ -1,0 +1,12 @@
+{
+  "name": "Orion – Batch Oriented Core Structural Calculator",
+  "short_name": "Orion-Core",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f3f7f6",
+  "theme_color": "#0b6e7f",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

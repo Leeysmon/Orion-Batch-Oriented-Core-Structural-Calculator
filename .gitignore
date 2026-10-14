@@ -1,0 +1,7 @@
+build_exe/stage_*/
+build_exe/work_*/
+Dist/Orion-v2.0.exe
+*.lnk
+desktop.ini
+*.code-workspace
+__pycache__/

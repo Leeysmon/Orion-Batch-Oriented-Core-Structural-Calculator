@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orion – Batch Oriented Core Structural Calculator</title>
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0f1f35">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <img src="icons/icon-192.png" alt="Orion-Core logo" width="56" height="56">
+  <div>
+    <h1>Orion – Batch Oriented Core Structural Calculator</h1>
+    <p>True plane orientations for many oriented-core measurements, from uploaded collar, survey and structure tables</p>
+  </div>
+  <span class="badge">Runs locally – files never leave your computer</span>
+</header>
+
+<main>
+  <!-- STEP 1 -->
+  <section class="card">
+    <div class="eyebrow">Step 1</div>
+    <h2>Upload data tables</h2>
+    <p class="hint">Each table can be a .csv or .xlsx file. Drag a file onto a box or click “Choose file”.</p>
+    <details class="help"><summary>ⓘ Help</summary><ul>
+      <li>The first row of each file must be the column headings.</li>
+      <li><b>Collar:</b> one row per hole (ID, X, Y, Z, maximum depth). <b>Survey:</b> one row per downhole survey station (ID, depth, azimuth, dip). <b>Structures:</b> one row per oriented measurement (ID, depth, alpha, beta, attributes).</li>
+      <li>The Hole ID must be spelled the same in all three files (not case-sensitive).</li>
+      <li>Files are read in your browser only; nothing is uploaded.</li></ul></details>
+    <div class="uploads">
+      <div class="drop" data-key="collar"><h3>Collar</h3><small>Hole ID, collar X / Y / Z, maximum depth</small>
+        <input type="file" accept=".csv,.xlsx,.xls" hidden><button type="button">Choose file</button><div class="fname"></div></div>
+      <div class="drop" data-key="survey"><h3>Survey</h3><small>Hole ID, azimuth, dip and depth of each survey station</small>
+        <input type="file" accept=".csv,.xlsx,.xls" hidden><button type="button">Choose file</button><div class="fname"></div></div>
+      <div class="drop" data-key="structures"><h3>Structures</h3><small>Hole ID, depth, alpha, beta and descriptive attributes</small>
+        <input type="file" accept=".csv,.xlsx,.xls" hidden><button type="button">Choose file</button><div class="fname"></div></div>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="card">
+    <div class="eyebrow">Step 2</div>
+    <h2>Identify columns</h2>
+    <p class="hint">Match the columns in each file to the fields the calculator needs. Likely matches are pre-selected; fields marked <span style="color:var(--danger)">*</span> are required.</p>
+    <details class="help"><summary>ⓘ Help</summary><ul>
+      <li>Pick the column that holds each field. Numeric fields (depth, angles, coordinates) are checked, and a warning appears if the chosen column contains text.</li>
+      <li><b>Survey dip sign:</b> choose whether a downward hole is stored as negative (−60) or positive (60).</li>
+      <li><b>Structure depth:</b> choose whether mDepth is the top or bottom of the structure. If your file has a per-row Top/Bottom column, map it to “Top/Bottom marker” and it overrides this setting.</li>
+      <li>Core length (cm) is used with the top/bottom setting to find the structure’s mid-depth, where the plane is placed. Without it, the mDepth itself is used.</li>
+      <li>Alpha is 0–90°; Beta is 0–360°, measured clockwise looking down-hole from the bottom-of-hole line.</li></ul></details>
+    <div class="maps" id="maps"><div class="msg">Load a file in Step 1 to map its columns.</div></div>
+    <div class="actions">
+      <button class="primary" id="btnCalc" disabled>CALCULATE</button>
+      <button id="btnReset">RESET ALL</button>
+      <span class="msg" id="calcMsg"></span>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="card hidden" id="step3">
+    <div class="eyebrow">Step 3</div>
+    <h2>Results &amp; 3D preview</h2>
+    <details class="help"><summary>ⓘ Help</summary><ul>
+      <li><b>Rotate</b> by dragging, <b>pan</b> by holding the left and right mouse buttons together and dragging, <b>zoom</b> with the wheel. Click a plane (or a table row) to see its strike/dip.</li>
+      <li><b>Two-tone planes:</b> the normal colour is the hanging-wall (upper) side; a darker tone shows when you view the foot-wall (lower) side.</li>
+      <li><b>Legend:</b> click an entry to hide or show those structures. Dashed outlines are moderate-certainty (dashed Ori-line).</li>
+      <li><b>Depth interval</b> limits planes to a depth range along the selected hole(s). <b>Axes</b> show X (East), Y (North) and Z (elevation) in the same units as your collar file.</li>
+      <li><b>Maximise</b> enlarges the view; <b>Export</b> saves it as PNG, JPEG or PDF. Strike uses the right-hand rule (dip is to the right of strike).</li>
+      <li><b>Compass &amp; plane:</b> teal = strike line, orange arrow = dip direction, black = hole direction at that depth.</li></ul></details>
+    <div class="step3">
+      <div>
+        <div class="viewer-wrap" id="vwrap">
+          <canvas id="gl"></canvas>
+          <div class="vpanel" id="vpanel">
+            <header id="vpHead"><span>Display options</span><span id="vpToggle">–</span></header>
+            <div class="body">
+              <div class="row"><b>Hole</b><select id="selHole"></select></div>
+              <div class="row"><b>Colour planes by</b>
+                <select id="selColor">
+                  <option value="min1">Vein Min. 1</option><option value="type">Type</option>
+                  <option value="oriLine">Ori-line</option><option value="holeId">Hole ID</option>
+                  <option value="style">Vein style</option>
+                </select></div>
+              <div class="row"><b>Transparency <span id="opVal"></span></b>
+                <input type="range" id="rngOpacity" min="5" max="100" value="50"></div>
+              <div class="row"><b>Plane size <span id="szVal"></span></b>
+                <input type="range" id="rngSize" min="1" max="100" value="50"></div>
+              <div class="row"><b>Depth interval (m)</b>
+                <div class="pair"><input type="number" id="depMin" step="any"><input type="number" id="depMax" step="any"></div>
+                <input type="range" id="rngMin" step="any"><input type="range" id="rngMax" step="any"></div>
+              <label class="chk"><input type="checkbox" id="chkAxes" checked> Show X / Y / Z axes</label>
+              <label class="chk"><input type="checkbox" id="chkLegend" checked> Show legend</label>
+              <label class="chk"><input type="checkbox" id="chkLabels" checked> Hole labels</label>
+            </div>
+          </div>
+          <div class="vtools">
+            <button id="btnReset3d">Reset view</button>
+            <button id="btnNorth">North-up plan</button>
+            <button id="btnFull">⛶ Maximise</button>
+            <select id="selExport"><option value="png">PNG</option><option value="jpeg">JPEG</option><option value="pdf">PDF</option></select>
+            <button id="btnExport">Export</button>
+          </div>
+          <div class="legend" id="legend"></div>
+          <div class="vhint">Drag to rotate · Left+right buttons drag to pan · scroll to zoom · click a plane to select</div>
+        </div>
+      </div>
+      <div class="side">
+        <div class="card" style="padding:16px">
+          <div class="eyebrow">Selected structure</div>
+          <h2 id="selTitle">—</h2>
+          <div class="results3">
+            <div><span>True dip</span><strong id="rDip">—</strong></div>
+            <div><span>Dip dir.</span><strong id="rDd">—</strong></div>
+            <div><span>Strike</span><strong id="rSt">—</strong></div>
+          </div>
+          <div class="sd">Strike / Dip<strong id="rSD">— / —</strong></div>
+          <div class="msg" id="rInfo" style="text-align:center;margin-top:6px"></div>
+        </div>
+        <div class="card" style="padding:16px">
+          <div class="eyebrow">Orientation preview</div>
+          <h2>Compass &amp; plane</h2>
+          <div class="compass" id="compass"></div>
+          <div class="keys"><span><i style="background:#4da3ff"></i>Structure strike</span><span><i style="background:#e8a33d"></i>Dip direction</span><span><i style="background:#cfe3ff"></i>Drillhole direction</span></div>
+        </div>
+        <div class="card" style="padding:16px">
+          <div class="eyebrow">Display</div>
+          <h2>Result precision</h2>
+          <select id="selPrec"><option value="0">Whole degrees</option><option value="1">1 decimal place</option><option value="2">2 decimal places</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="actions"><b>Calculated structures</b><span class="msg" id="tblMsg"></span>
+      <span style="margin-left:auto;display:flex;gap:8px"><button id="btnCsv">Download CSV</button><button id="btnXlsx">Download XLSX</button></span></div>
+    <div class="tablewrap"><table id="tbl"></table></div>
+  </section>
+</main>
+<footer>Right-hand rule · Alpha = plane-to-core-axis angle · Beta = clockwise from bottom-of-hole, looking down-hole</footer>
+<footer class="disclaimer"><strong>Disclaimer:</strong> Orion – Batch Oriented Core Structural Calculator is provided as-is for geological interpretation support; results must be verified by a qualified geologist before use in decisions. Developed by <strong>Dr. L. Hulijeli</strong> · <span id="verText">Version 2.1 · 2026</span> · &copy; 2026. Use of this application requires the developer's permission – please contact Dr. L. Hulijeli for app permissions. <span id="lockText"></span></footer>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/OrbitControls.js"></script>
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="config.js"></script>
+<script src="lock.js"></script>
+<script src="calc.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
