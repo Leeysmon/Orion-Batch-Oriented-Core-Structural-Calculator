@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Orion User Guide v3.0</title>
+<style>
+@page{size:A4;margin:16mm}
+body{font-family:Segoe UI,Arial,sans-serif;color:#1b2a41;font-size:10.5pt;line-height:1.45}
+h1{color:#0b2a5b;font-size:26pt;margin:0}
+h2{color:#0b2a5b;border-bottom:2px solid #3b82f6;padding-bottom:3px;margin-top:22px;page-break-after:avoid}
+h3{color:#1d4ed8;margin-bottom:4px;page-break-after:avoid}
+img{max-width:100%;border:1px solid #9db4d6;border-radius:4px;margin:6px 0}
+figure{margin:6px 0;page-break-inside:avoid}
+figcaption{font-size:9pt;color:#5a6b85;text-align:center}
+code{background:#eaf1fb;padding:0 3px;border-radius:3px}
+table{border-collapse:collapse;width:100%;margin:6px 0}
+td,th{border:1px solid #b6c7e2;padding:4px 7px;text-align:left;vertical-align:top;font-size:9.5pt}
+th{background:#e3edfb}
+.cover{text-align:center;padding-top:30px}
+.note{background:#eaf1fb;border-left:4px solid #3b82f6;padding:6px 10px;margin:8px 0}
+.pb{page-break-before:always}
+</style></head><body>
+
+<div class="cover">
+<h1>Orion</h1>
+<h2 style="border:0;margin-top:2px">Batch Oriented Core Structural Calculator</h2>
+<p><b>User Guide &middot; Version 3.0 &middot; 2026</b><br>Developer: Dr. L. Hulijeli</p>
+<figure><img src="shots/00_top.png"><figcaption>The Orion window: Step 1 (upload) at the top</figcaption></figure>
+</div>
+
+<h2>1. What Orion does</h2>
+<p>Orion converts the <b>alpha / beta</b> core-orientation angles of many structures at once into <b>true dip, dip direction and strike</b>, using the drill-hole collar and survey data. You upload three tables (Collar, Survey, Structures) as CSV or XLSX, tell Orion which column holds which value, and press <b>Calculate</b>. Results appear in a sortable, filterable table, a 3D drill-trace viewer and a stereonet.</p>
+<p>The app works offline; your data never leaves your computer.</p>
+
+<h2>2. Installing and starting</h2>
+<table>
+<tr><th>Option</th><th>How</th></tr>
+<tr><td>Portable EXE</td><td>Double-click <code>Orion-v3.0.exe</code>. No install needed.</td></tr>
+<tr><td>One-click installer</td><td>Keep <code>Install-Orion.bat</code>, <code>Install-Orion.ps1</code>, <code>Orion-Certificate.cer</code> and <code>Orion-v3.0.msix</code> in one folder. Double-click the <code>.bat</code> and accept the administrator prompt. It trusts the certificate and installs the app.</td></tr>
+</table>
+<div class="note"><b>Timelock:</b> version 3.0 stops working after 31 December 2026. Contact the developer, Dr. L. Hulijeli, for permission or a renewed version.</div>
+
+<h2 class="pb">3. Step 1 &ndash; Upload your data</h2>
+<p>Load the three tables, each as <code>.csv</code> or <code>.xlsx</code> (for Excel files you can pick the sheet).</p>
+<ul><li><b>Collar</b> &ndash; one row per hole: hole ID, X, Y, Z (elevation) and maximum depth.</li>
+<li><b>Survey</b> &ndash; downhole surveys: hole ID, depth, azimuth, dip (and optionally X, Y, Z, hole size).</li>
+<li><b>Structures</b> &ndash; the structural measurements, one row per feature.</li></ul>
+<figure><img src="shots/01_upload.png"><figcaption>Step 1: upload cards for Collar, Survey and Structures</figcaption></figure>
+<p>Example files are in the <code>sample_data</code> folder of the project.</p>
+
+<h2>4. Step 2 &ndash; Map the columns</h2>
+<p>When a table loads, a mapping card opens. For each required item, choose the column in your file that holds it. Orion tries to guess automatically; check each one.</p>
+<figure><img src="shots/02a_map_collar.png"><figcaption>Collar mapping: Hole ID, X, Y, Z, maximum depth</figcaption></figure>
+<h3>Survey fields</h3>
+<p>Hole ID, X, Y, Z, Azimuth (hole trace), Dip (hole trace), Depth of survey, Hole size.</p>
+<h3>Structure fields</h3>
+<table>
+<tr><th>Field</th><th>Meaning</th></tr>
+<tr><td>Hole ID, Depth</td><td>Where the structure is. A selector sets whether the depth is the <b>top</b> or the <b>bottom</b> of the structure.</td></tr>
+<tr><td>Ori-line</td><td><code>solid</code> = high certainty, <code>dashed</code> = moderate.</td></tr>
+<tr><td>Type</td><td>vein, breccia, contact, fracture, bedding, etc.</td></tr>
+<tr><td>Core length / thickness (cm)</td><td>Length along the core and true width of the structure.</td></tr>
+<tr><td>Alpha, Beta, Gamma</td><td>Orientation angles measured on the core. Alpha and Beta are required; Gamma is optional.</td></tr>
+<tr><td>Vein Min. 1&ndash;4 and %</td><td>Vein minerals and their percentages.</td></tr>
+<tr><td>Vein style, Comment</td><td>Free text.</td></tr>
+</table>
+<figure><img src="shots/02b_map_struct.png"><figcaption>Structures mapping</figcaption></figure>
+<div class="note"><b>Tip:</b> if rows are skipped, check that depth, alpha and beta are mapped to numeric columns (not text) and that hole IDs match exactly between tables.</div>
+<p>Press <b>Calculate</b> once all three tables are mapped. Each section has a <b>Help</b> drop-down with short instructions.</p>
+
+<h2 class="pb">5. Step 3 &ndash; Calculated structures table</h2>
+<figure><img src="shots/03_table.png"><figcaption>Table with a filter in the Type column and two ticked rows</figcaption></figure>
+<ul>
+<li><b>Sort:</b> click a column heading (click again to reverse).</li>
+<li><b>Filter:</b> type in the box beneath any heading. Combine categories with <code>|</code>, comma or semicolon, e.g. <code>stringer | vn</code> shows either. Exclude with <code>!</code>, e.g. <code>!stringer</code>. Numeric columns accept <code>&gt;10</code>, <code>&lt;=45</code> and ranges <code>10..20</code>.</li>
+<li><b>Filters drive the viewers.</b> As soon as a filter changes, the 3D viewer and the stereonet show only the filtered rows. Settings in the viewers can narrow the selection further, but never widen it.</li>
+<li><b>Check boxes + Show in viewer:</b> tick one or more rows and press <b>Show in viewer</b> to limit both viewers to those rows. <b>Show all in viewer</b> removes the limit; <b>Uncheck all</b> clears ticks.</li>
+<li><b>Clear sort &amp; filters</b> resets the table.</li>
+<li><b>Download CSV / XLSX</b> saves the (filtered) results.</li>
+</ul>
+
+<h2 class="pb">6. Step 4 &ndash; 3D viewer</h2>
+<figure><img src="shots/04_3d.png"><figcaption>3D viewer with Display options, axes and interactive legend</figcaption></figure>
+<h3>Mouse controls</h3>
+<table><tr><td>Rotate</td><td>Left-drag</td></tr><tr><td>Pan</td><td>Left + right buttons together</td></tr><tr><td>Zoom</td><td>Scroll wheel</td></tr><tr><td>Select a plane</td><td>Click it &ndash; the table scrolls to and highlights its row</td></tr></table>
+<h3>Buttons</h3>
+<p><b>Reset view</b>, <b>North-up plan</b> (looks down with north at the top), <b>Maximise</b>, and <b>Export</b> (PNG, JPEG or PDF).</p>
+<h3>Display options</h3>
+<ul><li><b>Hole</b> &ndash; show all holes or one.</li>
+<li><b>Colour planes by</b> &ndash; e.g. Vein Min. 1 or Type.</li>
+<li><b>Transparency</b> and <b>Plane size</b>.</li>
+<li><b>Depth interval</b> &ndash; only structures within the chosen depth range are shown.</li>
+<li><b>Show X/Y/Z axes</b> &ndash; labelled axes with automatic tick spacing (1, 2, 5, 10, 20, 25, 50, 100 m). They meet at the lowest point of the trace so deep vs shallow is easy to judge.</li>
+<li><b>Show legend</b> &ndash; click an entry to hide or show that category in both viewers.</li></ul>
+<h3>Hanging wall / foot wall</h3>
+<p>Each plane is two-tone: the lighter colour with a <b>solid</b> border is the hanging-wall side; the darker colour with a <b>dotted</b> border is the foot-wall side, depending on which side you are viewing.</p>
+
+<h2 class="pb">7. Selected structure and compass</h2>
+<figure><img src="shots/05_cards.png"><figcaption>Selected structure, compass &amp; plane, and result precision</figcaption></figure>
+<p>Select a structure in the table, 3D viewer or stereonet to see its true dip, dip direction, strike and strike/dip notation, plus a compass showing strike (blue), dip direction (orange) and the drill-hole direction (white). <b>Result precision</b> switches between whole and decimal degrees.</p>
+
+<h2>8. Stereonet</h2>
+<figure><img src="shots/06_stereo.png"><figcaption>Lower-hemisphere equal-area stereonet: great circles, selected structure (white) and dashed red mean plane</figcaption></figure>
+<figure><img src="shots/06b_stereo_poles.png"><figcaption>Same data with poles switched on</figcaption></figure>
+<ul>
+<li>Shows exactly the structures visible in the 3D viewer (table filters, depth interval, legend, checked rows).</li>
+<li>The <b>dashed red line</b> is the average plane of the structures shown; its dip direction/dip and strike are listed below the plot, along with the mean pole.</li>
+<li><b>Settings</b> let you toggle great circles, poles, mean plane, mean pole and grid, and set line thickness and pole size.</li>
+<li>Click a line or pole to select it &ndash; the table scrolls to its row. Export as PNG, JPEG or PDF.</li></ul>
+
+<h2>9. Conventions</h2>
+<ul><li>Strike follows the right-hand rule (dip is to the right of strike direction).</li>
+<li>Alpha is the angle between the core axis and the structure; beta is measured around the core from the bottom-of-hole reference line.</li>
+<li>Hanging wall is the upper side of a structure.</li></ul>
+
+<h2>10. Troubleshooting</h2>
+<table>
+<tr><th>Problem</th><th>Fix</th></tr>
+<tr><td>Nothing calculates</td><td>Check all three tables are loaded and mapped; depth, alpha, beta must be numeric.</td></tr>
+<tr><td>Some rows skipped</td><td>Missing or non-numeric angles, or hole ID not found in Collar/Survey.</td></tr>
+<tr><td>Viewers show fewer structures than expected</td><td>Check table filters, depth interval, legend toggles and checked rows.</td></tr>
+<tr><td>App says it has expired</td><td>Contact Dr. L. Hulijeli for a renewed version.</td></tr>
+</table>
+
+<h2>11. Disclaimer</h2>
+<p>Orion v3.0 &copy; 2026 Dr. L. Hulijeli. Results should be verified by a qualified geologist. Contact the developer for permissions and licensing.</p>
+</body></html>
