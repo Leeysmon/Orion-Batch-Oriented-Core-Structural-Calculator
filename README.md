@@ -48,6 +48,17 @@ It is a batch version of the single-measurement [Oriented Core Structural Calcul
 - Drillhole traces use the minimum-curvature method. Dip sign convention (negative = downward) is selectable.
 - Gamma and hole size are read but not yet used in calculations.
 
+## Installing the signed MSIX (Windows 10/11)
+
+`Dist/Orion-v2.1.msix` is signed with a self-signed certificate, so Windows must be told to trust it once per computer.
+
+1. Download `Orion-Certificate.cer` and `Orion-v2.1.msix` from the `Dist` folder.
+2. Right-click `Orion-Certificate.cer` → **Install Certificate** → **Local Machine** (administrator approval required) → **Place all certificates in the following store** → **Browse** → **Trusted People** → **Finish**.
+3. Double-click `Orion-v2.1.msix` → **Install**. Orion then appears in the Start menu.
+4. Only install the certificate if you received it directly from the developer. It is limited to the *Trusted People* store, which is enough for this package.
+
+Future versions signed with the same certificate install without repeating step 2. Developers: rebuild the package with `build_exe/build_msix.ps1` (needs `certs/OrionSigning.pfx`, which is never committed).
+
 ## Time lock and permissions
 
 Version 2.1 is time-locked and stops working after **31 December 2026**. After that date, or to request permission to use the app, please contact the developer, **Dr. L. Hulijeli**.

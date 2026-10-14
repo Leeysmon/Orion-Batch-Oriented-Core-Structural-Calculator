@@ -5,3 +5,7 @@ Dist/Orion-v2.0.exe
 desktop.ini
 *.code-workspace
 __pycache__/
+certs/
+build_exe/tools/
+build_exe/msix/stage/
+*.pfx
