@@ -9,3 +9,4 @@ certs/
 build_exe/tools/
 build_exe/msix/stage/
 *.pfx
+Admin/
