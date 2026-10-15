@@ -1,0 +1,26 @@
+ORION - CERTIFICATE INSTALLATION (do this ONCE, before installing Orion)
+Developer: Dr. L. Hulijeli
+
+The certificate "Orion-Certificate.cer" lets Windows recognise the Orion
+installer as coming from the developer. It contains a PUBLIC key only - it
+cannot run code or change anything except marking this publisher as trusted.
+
+STEPS
+1. Double-click "Orion-Certificate.cer".
+   (If it was zipped, right-click the zip > Extract All first.)
+2. Click "Install Certificate...".
+3. Choose "Local Machine" > Next > allow the administrator prompt (Yes).
+4. Choose "Place all certificates in the following store" > Browse...
+5. Select "Trusted People" (or "Trusted Root Certification Authorities") > OK.
+6. Next > Finish. You should see "The import was successful."
+
+THEN
+7. Double-click "Orion-v3.0.msix" and click Install.
+
+ALTERNATIVE (no certificate needed)
+Run the portable "Orion-v3.0.exe" directly. Windows SmartScreen may show a
+blue warning: click "More info" > "Run anyway".
+
+NOTE
+Version 3.0 stops working after 31 December 2026.
+Contact Dr. L. Hulijeli for permissions or a renewed version.

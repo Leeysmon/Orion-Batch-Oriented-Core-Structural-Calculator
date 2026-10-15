@@ -10,5 +10,7 @@ build_exe/tools/
 build_exe/msix/stage/
 *.pfx
 Admin/
-Dist/Orion-v3.0_admin.exe
+Dist/3-Admin_and_Archive/
 Dist/*.zip
+Dist/*.zip
+Dist/**/*.zip
