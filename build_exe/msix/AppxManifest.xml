@@ -1,9 +1,9 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
          xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
          xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
          IgnorableNamespaces="uap rescap">
-  <Identity Name="LHulijeli.OrionCoreStructuralCalculator" Publisher="CN=Dr. L. Hulijeli" Version="3.0.0.0" ProcessorArchitecture="x64" />
+  <Identity Name="LHulijeli.OrionCoreStructuralCalculator" Publisher="CN=Dr. L. Hulijeli" Version="3.1.0.0" ProcessorArchitecture="x64" />
   <Properties>
     <DisplayName>Orion – Batch Oriented Core Structural Calculator</DisplayName>
     <PublisherDisplayName>Dr. L. Hulijeli</PublisherDisplayName>
@@ -16,8 +16,8 @@
     <Resource Language="en-us" />
   </Resources>
   <Applications>
-    <Application Id="Orion" Executable="Orion-v3.0.exe" EntryPoint="Windows.FullTrustApplication">
-      <uap:VisualElements DisplayName="Orion Core Structural Calculator" Description="Batch oriented core structural calculator – version 3.0 (2026)"
+    <Application Id="Orion" Executable="Orion-v3.1.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="Orion Core Structural Calculator" Description="Batch oriented core structural calculator – version 3.1 (2026)"
                           BackgroundColor="#0f1f35" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png">
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
       </uap:VisualElements>

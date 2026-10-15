@@ -765,38 +765,48 @@
   const SN = { hits: [] };
   const SNs = () => ({
     lines: $('#snLines').checked, poles: $('#snPoles').checked, mean: $('#snMean').checked, meanPole: $('#snMeanPole').checked,
-    grid: $('#snGrid').checked, lw: Number($('#snLw').value), ps: Number($('#snPs').value), white: $('#snWhite').checked,
+    grid: $('#snGrid').checked, dens: $('#snDens').checked, lw: Number($('#snLw').value), ps: Number($('#snPs').value), white: $('#snWhite').checked,
   });
-  const poleVec = (dip, dd) => { const d = dip * D2R, a = dd * D2R; return [-Math.sin(d) * Math.sin(a), -Math.sin(d) * Math.cos(a), -Math.cos(d)]; };
+  const ST = window.OrionStereo;
+  const poleVec = ST.poleVec;
 
-  // Mean plane from the principal axis of the pole scatter matrix (handles planes whose poles straddle the net).
+  // Mean plane: pole vectors are aligned to one hemisphere, averaged and normalised (see stereo.js).
   SN.mean = function (items) {
-    if (!items.length) return null;
-    const P = items.map((it) => poleVec(it.res.dip, it.res.dipDir));
-    const T = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
-    P.forEach((p) => { for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) T[i][j] += p[i] * p[j]; });
-    let v = P[0].slice();
-    for (let k = 0; k < 200; k++) {
-      const w = [0, 1, 2].map((i) => T[i][0] * v[0] + T[i][1] * v[1] + T[i][2] * v[2]);
-      const l = Math.hypot(...w) || 1; v = w.map((x) => x / l);
-    }
-    if (v[2] > 0) v = v.map((x) => -x);
-    const u = v.map((x) => -x);
-    return { n: items.length, pole: v, dip: Math.acos(Math.min(1, Math.max(-1, u[2]))) / D2R, dipDir: norm360(Math.atan2(u[0], u[1]) / D2R) };
+    return ST.meanPlane(items.map((it) => ({ dip: it.res.dip, dipDir: it.res.dipDir })));
   };
 
   SN.render = function (g, w, h, st, o) {
     const dark = !st.white, ink = dark ? '#e3eefc' : '#111', bg = dark ? '#0a1a2e' : '#ffffff';
     g.fillStyle = bg; g.fillRect(0, 0, w, h);
     const R = Math.min(w - 120, h - 90) / 2, cx = w / 2, cy = h / 2 + 8;
-    const proj = (v) => {
-      const hh = Math.hypot(v[0], v[1]);
-      if (hh < 1e-12) return [cx, cy];
-      const r = R * Math.SQRT2 * Math.sin(Math.acos(Math.min(1, Math.max(0, -v[2]))) / 2);
-      return [cx + (r * v[0]) / hh, cy - (r * v[1]) / hh];
-    };
+    const proj = (v) => { const p = ST.project(v); return [cx + R * p[0], cy - R * p[1]]; };
     g.save();
     g.beginPath(); g.arc(cx, cy, R, 0, 2 * Math.PI); g.fillStyle = dark ? '#0d2038' : '#fff'; g.fill(); g.clip();
+    const items = V.items.filter((it) => it.group.visible);
+    if (st.dens && items.length) {
+      const dn = ST.density(items.map((it) => poleVec(it.res.dip, it.res.dipDir)), 90);
+      const oc = document.createElement('canvas'); oc.width = oc.height = dn.size;
+      const oc2 = oc.getContext('2d'), img = oc2.createImageData(dn.size, dn.size);
+      for (let k = 0; k < dn.grid.length; k++) {
+        const v = dn.grid[k] / dn.max;
+        if (!(v > 0.1)) continue;
+        const c = ST.blueRGB(v);
+        img.data[4 * k] = c[0]; img.data[4 * k + 1] = c[1]; img.data[4 * k + 2] = c[2];
+        img.data[4 * k + 3] = Math.round(255 * Math.min(1, (dark ? 0.3 : 0.15) + (dark ? 0.55 : 0.7) * v));
+      }
+      oc2.putImageData(img, 0, 0);
+      g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+      g.drawImage(oc, cx - R - R / (dn.size - 1), cy - R - R / (dn.size - 1), 2 * R + (2 * R) / (dn.size - 1), 2 * R + (2 * R) / (dn.size - 1));
+      g.lineWidth = 1;
+      [0.25, 0.4, 0.55, 0.7, 0.85].forEach((f, k) => {
+        g.strokeStyle = dark ? ST.blueRamp(0.25 + 0.12 * k) : ST.blueRamp(0.5 + 0.1 * k); g.beginPath();
+        ST.contourSegments(dn.grid, dn.size, f * dn.max).forEach((s) => {
+          g.moveTo(cx + R * (-1 + (2 * s[0]) / (dn.size - 1)), cy + R * ((2 * s[1]) / (dn.size - 1) - 1));
+          g.lineTo(cx + R * (-1 + (2 * s[2]) / (dn.size - 1)), cy + R * ((2 * s[3]) / (dn.size - 1) - 1));
+        });
+        g.stroke();
+      });
+    }
     if (st.grid) {
       g.strokeStyle = dark ? '#35557c' : '#c8c8c8'; g.lineWidth = 0.8; g.setLineDash([2, 3]);
       for (let p = 10; p < 90; p += 10) { const r = R * Math.SQRT2 * Math.sin(((90 - p) * D2R) / 2); g.beginPath(); g.arc(cx, cy, r, 0, 2 * Math.PI); g.stroke(); }
@@ -806,12 +816,8 @@
     g.strokeStyle = ink; g.lineWidth = 0.8;
     g.beginPath(); g.moveTo(cx, cy - R); g.lineTo(cx, cy + R); g.moveTo(cx - R, cy); g.lineTo(cx + R, cy); g.stroke();
 
-    const items = V.items.filter((it) => it.group.visible);
     const geo = items.map((it) => {
-      const d = it.res.dip * D2R, a = it.res.dipDir * D2R;
-      const s = [-Math.cos(a), Math.sin(a), 0], dn = [Math.sin(a) * Math.cos(d), Math.cos(a) * Math.cos(d), -Math.sin(d)];
-      const pts = [];
-      for (let i = 0; i <= 90; i++) { const t = (Math.PI * i) / 90, c = Math.cos(t), sn = Math.sin(t); pts.push(proj([c * s[0] + sn * dn[0], c * s[1] + sn * dn[1], c * s[2] + sn * dn[2]])); }
+      const pts = ST.greatCircle(it.res.dip, it.res.dipDir, 90).map(proj);
       return { it, pts, pole: proj(poleVec(it.res.dip, it.res.dipDir)), col: V.catColor.get(it.cat) || '#888' };
     });
     if (o && o.hits) SN.hits = [];
@@ -827,9 +833,7 @@
     }
     const m = SN.mean(items); SN.meanRes = m;
     if (m && st.mean) {
-      const d = m.dip * D2R, a = m.dipDir * D2R;
-      const s = [-Math.cos(a), Math.sin(a), 0], dn = [Math.sin(a) * Math.cos(d), Math.cos(a) * Math.cos(d), -Math.sin(d)], pts = [];
-      for (let i = 0; i <= 90; i++) { const t = (Math.PI * i) / 90, c = Math.cos(t), sn = Math.sin(t); pts.push(proj([c * s[0] + sn * dn[0], c * s[1] + sn * dn[1], c * s[2] + sn * dn[2]])); }
+      const pts = ST.greatCircle(m.dip, m.dipDir, 90).map(proj);
       g.setLineDash([9, 6]); g.lineWidth = st.lw + 3.5; g.strokeStyle = '#000'; path(pts); g.stroke();
       g.lineWidth = st.lw + 1.2; g.strokeStyle = '#ff2020'; path(pts); g.stroke(); g.setLineDash([]);
     }
@@ -875,7 +879,7 @@
     SN.render(g, w, h, SNs(), { hits: true });
     const m = SN.meanRes;
     $('#snInfo').innerHTML = m
-      ? `<b>Mean plane</b> of ${m.n} structure${m.n > 1 ? 's' : ''} shown<br>Dip dir. <b>${fmt3(m.dipDir)}°</b> · Dip <b>${fmt3(m.dip)}°</b><br>Strike (RHR) <b>${fmt3(norm360(m.dipDir - 90))}°</b><br>Mean pole: trend ${fmt3(norm360(Math.atan2(m.pole[0], m.pole[1]) / D2R))}° · plunge ${fmt3(Math.asin(-m.pole[2]) / D2R)}°`
+      ? `<b>Mean plane</b> of ${m.n} structure${m.n > 1 ? 's' : ''} shown<br>Dip dir. <b>${fmt3(m.dipDir)}°</b> · Dip <b>${fmt3(m.dip)}°</b><br>Strike (RHR) <b>${fmt3(norm360(m.dipDir - 90))}°</b><br>Mean pole: trend <b>${fmt3(m.trend)}°</b> · plunge <b>${fmt3(m.plunge)}°</b>`
       : 'No structures shown.';
   };
 
@@ -964,7 +968,7 @@
   $('#opVal').textContent = '50% transparent';
 
   // stereonet controls
-  ['snLines', 'snPoles', 'snMean', 'snMeanPole', 'snGrid', 'snWhite'].forEach((id) => ($('#' + id).onchange = () => SN.draw()));
+  ['snLines', 'snPoles', 'snDens', 'snMean', 'snMeanPole', 'snGrid', 'snWhite'].forEach((id) => ($('#' + id).onchange = () => SN.draw()));
   ['snLw', 'snPs'].forEach((id) => ($('#' + id).oninput = (e) => { $('#' + id + 'V').textContent = e.target.value; SN.draw(); }));
   $('#sn').addEventListener('click', (e) => {
     const b = e.currentTarget.getBoundingClientRect(), i = SN.pick(e.clientX - b.left, e.clientY - b.top);

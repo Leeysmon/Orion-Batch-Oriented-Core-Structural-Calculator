@@ -157,7 +157,8 @@
     <details class="help"><summary>ⓘ Help</summary><ul>
       <li>Equal-area (Schmidt) <b>lower-hemisphere</b> net. Each structure is a <b>great circle</b> (the plane) and/or a <b>pole</b> (the normal to the plane). Colours match the 3D viewer.</li>
       <li>It always shows the <b>same structures as the 3D viewer</b>: table filters (Step 3), any rows sent with <b>Show in viewer</b>, and the hole, depth interval and legend toggles.</li>
-      <li>The <b>dashed red line</b> is the mean plane of everything currently shown (principal axis of the poles); the red ✕ is its pole.</li>
+      <li>The <b>dashed red line</b> is the mean plane of everything currently shown (poles are aligned to one hemisphere, averaged and normalised); the red ✕ is its pole.</li>
+      <li><b>Pole-density contours</b> shade clustering of the poles from light blue (sparse) to deep blue (dense), with contour lines at 25–85 % of the peak density.</li>
       <li>Click a line or pole to select it – the matching table row is highlighted and scrolled into view. Use the <b>Stereonet settings</b> to change line thickness, point size and what is drawn.</li></ul></details>
     <div class="step3">
       <div class="viewer-wrap" id="swrap">
@@ -177,6 +178,7 @@
           <div class="snset">
             <label class="chk"><input type="checkbox" id="snLines" checked> Great circles (planes)</label>
             <label class="chk"><input type="checkbox" id="snPoles"> Poles to planes</label>
+            <label class="chk"><input type="checkbox" id="snDens"> Pole-density contours</label>
             <label class="chk"><input type="checkbox" id="snMean" checked> Mean plane (dashed red)</label>
             <label class="chk"><input type="checkbox" id="snMeanPole" checked> Mean pole (✕)</label>
             <label class="chk"><input type="checkbox" id="snGrid" checked> Grid</label>
@@ -195,7 +197,7 @@
   </section>
 </main>
 <footer>Right-hand rule · Alpha = plane-to-core-axis angle · Beta = clockwise from bottom-of-hole, looking down-hole</footer>
-<footer class="disclaimer"><strong>Disclaimer:</strong> Orion – Batch Oriented Core Structural Calculator is provided as-is for geological interpretation support; results must be verified by a qualified geologist before use in decisions. Developed by <strong>Dr. L. Hulijeli</strong> · <span id="verText">Version 3.0 · 2026</span> · &copy; 2026. Use of this application requires the developer's permission – please contact Dr. L. Hulijeli for app permissions. <span id="lockText"></span></footer>
+<footer class="disclaimer"><strong>Disclaimer:</strong> Orion – Batch Oriented Core Structural Calculator is provided as-is for geological interpretation support; results must be verified by a qualified geologist before use in decisions. Developed by <strong>Dr. L. Hulijeli</strong> · <span id="verText">Version 3.1 · 2026</span> · &copy; 2026. Use of this application requires the developer's permission – please contact Dr. L. Hulijeli for app permissions. <span id="lockText"></span></footer>
 
 <script src="vendor/three.min.js"></script>
 <script src="vendor/OrbitControls.js"></script>
@@ -204,6 +206,7 @@
 <script src="config.js"></script>
 <script src="lock.js"></script>
 <script src="calc.js"></script>
+<script src="stereo.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
