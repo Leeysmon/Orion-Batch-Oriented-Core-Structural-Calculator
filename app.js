@@ -778,34 +778,27 @@
   SN.render = function (g, w, h, st, o) {
     const dark = !st.white, ink = dark ? '#e3eefc' : '#111', bg = dark ? '#0a1a2e' : '#ffffff';
     g.fillStyle = bg; g.fillRect(0, 0, w, h);
-    const R = Math.min(w - 120, h - 90) / 2, cx = w / 2, cy = h / 2 + 8;
+    const R = Math.min(w - 170, h - 90) / 2, cx = w / 2 + 35, cy = h / 2 + 8;
     const proj = (v) => { const p = ST.project(v, st.wulff ? 'wulff' : 'area'); return [cx + R * p[0], cy - R * p[1]]; };
     g.save();
     g.beginPath(); g.arc(cx, cy, R, 0, 2 * Math.PI); g.fillStyle = dark ? '#0d2038' : '#fff'; g.fill(); g.clip();
     const items = V.items.filter((it) => it.group.visible);
+    let dband = null;
     if (st.dens && !st.wulff && items.length) {
-      const dn = ST.density(items.map((it) => poleVec(it.res.dip, it.res.dipDir)), 90);
+      const dn = ST.density(items.map((it) => poleVec(it.res.dip, it.res.dipDir)), 260), lv = ST.densityLevels(dn.max);
+      const nb = lv.levels.length, bandCol = (i) => { const t = nb > 1 ? i / (nb - 1) : 1, a = [226, 243, 236], b = [45, 120, 80]; return a.map((x, k) => Math.round(x + (b[k] - x) * t)); };
+      dband = { lv, nb, bandCol, max: dn.max };
       const oc = document.createElement('canvas'); oc.width = oc.height = dn.size;
       const oc2 = oc.getContext('2d'), img = oc2.createImageData(dn.size, dn.size);
       for (let k = 0; k < dn.grid.length; k++) {
-        const v = dn.grid[k] / dn.max;
-        if (!(v > 0.1)) continue;
-        const c = ST.blueRGB(v);
-        img.data[4 * k] = c[0]; img.data[4 * k + 1] = c[1]; img.data[4 * k + 2] = c[2];
-        img.data[4 * k + 3] = Math.round(255 * Math.min(1, (dark ? 0.3 : 0.15) + (dark ? 0.55 : 0.7) * v));
+        let b = -1; for (let i = 0; i < nb; i++) if (dn.grid[k] >= lv.levels[i]) b = i;
+        if (b < 0) continue;
+        const c = bandCol(b);
+        img.data[4 * k] = c[0]; img.data[4 * k + 1] = c[1]; img.data[4 * k + 2] = c[2]; img.data[4 * k + 3] = 175;
       }
       oc2.putImageData(img, 0, 0);
-      g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+      g.imageSmoothingEnabled = false;
       g.drawImage(oc, cx - R - R / (dn.size - 1), cy - R - R / (dn.size - 1), 2 * R + (2 * R) / (dn.size - 1), 2 * R + (2 * R) / (dn.size - 1));
-      g.lineWidth = 1;
-      [0.25, 0.4, 0.55, 0.7, 0.85].forEach((f, k) => {
-        g.strokeStyle = dark ? ST.blueRamp(0.25 + 0.12 * k) : ST.blueRamp(0.5 + 0.1 * k); g.beginPath();
-        ST.contourSegments(dn.grid, dn.size, f * dn.max).forEach((s) => {
-          g.moveTo(cx + R * (-1 + (2 * s[0]) / (dn.size - 1)), cy + R * ((2 * s[1]) / (dn.size - 1) - 1));
-          g.lineTo(cx + R * (-1 + (2 * s[2]) / (dn.size - 1)), cy + R * ((2 * s[3]) / (dn.size - 1) - 1));
-        });
-        g.stroke();
-      });
     }
     if (st.grid) {
       g.strokeStyle = dark ? '#3d6190' : '#9a9a9a'; g.lineWidth = 0.8; g.setLineDash([2, 3]);
@@ -844,6 +837,18 @@
       g.lineCap = 'butt';
     }
     g.strokeStyle = ink; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, R, 0, 2 * Math.PI); g.stroke();
+    if (dband && dband.nb) {
+      const bx = 18, bw = 16, bh = Math.min(h - 120, 2 * R * 0.85), by = cy - bh / 2, n = dband.nb + 1, sh = bh / n;
+      g.fillStyle = ink; g.font = '11px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+      g.fillText('Pole density', bx + 30, by - 28); g.fillText('(% per 1% area)', bx + 30, by - 14);
+      for (let i = 0; i < n; i++) {
+        const y = by + bh - (i + 1) * sh;
+        g.fillStyle = i === 0 ? (dark ? '#0d2038' : '#fff') : `rgb(${dband.bandCol(i - 1).join(',')})`; g.fillRect(bx, y, bw, sh);
+      }
+      g.strokeStyle = ink; g.lineWidth = 1; g.strokeRect(bx, by, bw, bh);
+      g.fillStyle = ink; g.textAlign = 'left'; g.textBaseline = 'middle';
+      dband.lv.levels.forEach((v, i) => { const y = by + bh - (i + 1) * sh; g.beginPath(); g.moveTo(bx + bw, y); g.lineTo(bx + bw + 4, y); g.stroke(); g.fillText(String(v), bx + bw + 7, y); });
+    }
     g.fillStyle = ink; g.font = '12px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
     for (let a = 0; a < 360; a += 45) { const t = a * D2R; g.fillText(a + '°', cx + (R + 18) * Math.sin(t), cy - (R + 18) * Math.cos(t)); }
     if (o && o.title) {

@@ -116,7 +116,20 @@
       grid[j * size + i] = s;
       if (s > max) max = s;
     }
-    return { grid, size, max };
+    // Percent of poles per 1% of net area: a kernel of concentration kappa integrates to ~2*pi/kappa over the hemisphere.
+    const f = kappa / (poles.length || 1);
+    for (let k = 0; k < grid.length; k++) grid[k] *= f;
+    return { grid, size, max: max * f };
+  }
+  // Discrete levels (nice step, about 6 bands) for a given peak value.
+  function densityLevels(max) {
+    if (!(max > 0)) return { step: 1, levels: [] };
+        const raw = max / 8, p = Math.pow(10, Math.max(0, Math.floor(Math.log10(Math.max(raw, 1)))));
+        const step = Math.max(1, Math.floor([1, 2, 3, 5, 10].map((m) => m * p).find((s) => s >= raw) || 10 * p));
+    const levels = [];
+        if (max >= 1) levels.push(1);
+        for (let v = step; v < max; v += step) if (v > 1) levels.push(v);
+        return { step, levels };
   }
   // Marching squares: returns line segments [[x1,y1,x2,y2],...] in grid index space for one level.
   function contourSegments(grid, size, level) {
@@ -151,6 +164,6 @@
   }
   const blueRamp = (t) => `rgb(${blueRGB(t).join(',')})`;
 
-  const api = { norm360, strikeToDipDir, dipDirToStrike, poleFromPlane, trendPlungeToVec, vecToTrendPlunge, poleToPlane, poleVec, project, netGrid, unproject, greatCircle, meanPlane, kernelKappa, density, contourSegments, blueRGB, blueRamp };
+  const api = { norm360, strikeToDipDir, dipDirToStrike, poleFromPlane, trendPlungeToVec, vecToTrendPlunge, poleToPlane, poleVec, project, netGrid, unproject, greatCircle, meanPlane, kernelKappa, density, densityLevels, contourSegments, blueRGB, blueRamp };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.OrionStereo = api;
 })(typeof window !== 'undefined' ? window : globalThis);

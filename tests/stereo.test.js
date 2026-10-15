@@ -113,6 +113,18 @@ t('net grid: every point is lower hemisphere; meridians meet at N and S; N-S axi
   const p = S.project(m[90]); near(p[0], 0, 1e-12); near(p[1], 1, 1e-12); // north end sits at top of the net
 });
 
+t('density levels: discrete nice steps below the peak', () => {
+  const l = S.densityLevels(21); near(l.step, 3, 1e-9); assert.deepStrictEqual(l.levels, [1, 3, 6, 9, 12, 15, 18]);
+  assert.deepStrictEqual(S.densityLevels(0.8).levels, []);
+  assert.ok(S.densityLevels(0).levels.length === 0);
+});
+
+t('density is in % per 1% area: uniform-ish scatter stays modest, tight cluster is high', () => {
+  const tight = S.density(Array.from({ length: 20 }, () => S.poleVec(40, 120)), 60);
+  const wide = S.density(Array.from({ length: 20 }, (_, i) => S.poleVec(20 + 3 * i, 20 * i)), 60);
+  assert.ok(tight.max > wide.max);
+});
+
 t('blue ramp runs light blue -> deep blue', () => {
   assert.strictEqual(S.blueRamp(0), 'rgb(191,225,255)'); assert.strictEqual(S.blueRamp(1), 'rgb(8,48,140)');
 });

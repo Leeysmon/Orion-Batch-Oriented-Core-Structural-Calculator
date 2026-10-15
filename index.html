@@ -158,7 +158,7 @@
       <li>Equal-area (Schmidt) <b>lower-hemisphere</b> net. Each structure is a <b>great circle</b> (the plane) and/or a <b>pole</b> (the normal to the plane). Colours match the 3D viewer.</li>
       <li>It always shows the <b>same structures as the 3D viewer</b>: table filters (Step 3), any rows sent with <b>Show in viewer</b>, and the hole, depth interval and legend toggles.</li>
       <li>The <b>dashed red line</b> is the mean plane of everything currently shown (poles are aligned to one hemisphere, averaged and normalised); the red ✕ is its pole.</li>
-      <li><b>Pole-density contours</b> shade clustering of the poles from light blue (sparse) to deep blue (dense), with contour lines at 25–85 % of the peak density.</li>
+      <li><b>Pole-density shading</b> shows clustering of the poles in discrete bands (percent of poles per 1 % of net area, light to dark green, with a banded colour bar); no contour lines are drawn. Available on the equal-area net.</li>
       <li>Click a line or pole to select it – the matching table row is highlighted and scrolled into view. Use the <b>Stereonet settings</b> to change line thickness, point size and what is drawn.</li></ul></details>
     <div class="step3">
       <div class="viewer-wrap" id="swrap">
@@ -179,7 +179,7 @@
             <div class="row"><b>Net (lower hemisphere)</b><select id="snNet"><option value="area">Equal-area (Schmidt)</option><option value="wulff">Equal-angle (Wulff)</option></select></div>
             <label class="chk"><input type="checkbox" id="snLines" checked> Great circles (planes)</label>
             <label class="chk"><input type="checkbox" id="snPoles"> Poles to planes</label>
-            <label class="chk"><input type="checkbox" id="snDens"> Pole-density contours</label>
+            <label class="chk"><input type="checkbox" id="snDens"> Pole-density shading</label>
             <label class="chk"><input type="checkbox" id="snMean" checked> Mean plane (dashed red)</label>
             <label class="chk"><input type="checkbox" id="snMeanPole" checked> Mean pole (✕)</label>
             <label class="chk"><input type="checkbox" id="snGrid" checked> Grid</label>
