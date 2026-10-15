@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import threading
+import time
 import functools
 import http.server
 import socketserver
@@ -17,9 +18,20 @@ BROWSERS = [
 ]
 
 
+LAST = [time.time()]
+
+
 class Quiet(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a):
         pass
+
+    def do_GET(self):
+        LAST[0] = time.time()
+        if self.path.startswith("/hb"):
+            self.send_response(204)
+            self.end_headers()
+            return
+        super().do_GET()
 
 
 def main():
@@ -38,6 +50,11 @@ def main():
         return
     subprocess.run([exe, f"--app={url}", f"--user-data-dir={profile}", "--window-size=1440,900",
                     "--no-first-run", "--no-default-browser-check"])
+    # The browser may hand the window to an existing process and exit at once;
+    # keep serving until the page stops sending its heartbeat.
+    LAST[0] = time.time()
+    while time.time() - LAST[0] < 20:
+        time.sleep(2)
 
 
 if __name__ == "__main__":
