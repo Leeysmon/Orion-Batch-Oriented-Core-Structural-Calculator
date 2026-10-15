@@ -31,12 +31,29 @@
 
   /* ---- projection ---- */
   // Lambert azimuthal equal-area, lower hemisphere. Primitive circle has radius 1. Returns [x east, y north].
-  function project(v) {
+  // Lower hemisphere only. mode 'wulff' = equal-angle stereographic (r = tan(theta/2)); default = Lambert equal-area.
+  function project(v, mode) {
     const u = v[2] > 0 ? [-v[0], -v[1], -v[2]] : v;
     const h = Math.hypot(u[0], u[1]);
     if (h < 1e-12) return [0, 0];
-    const r = Math.SQRT2 * Math.sin(Math.acos(clamp1(-u[2])) / 2);
+    const th = Math.acos(clamp1(-u[2]));
+    const r = mode === 'wulff' ? Math.tan(th / 2) : Math.SQRT2 * Math.sin(th / 2);
     return [(r * u[0]) / h, (r * u[1]) / h];
+  }
+  // Graticule of the net: meridians (great circles through N and S) and small circles about the N-S axis.
+  function netGrid(step, n) {
+    step = step || 10; n = n || 90;
+    const lines = [];
+    for (let m = -90 + step; m < 90; m += step) {
+      const a = [], b = [];
+      for (let i = 0; i <= n; i++) {
+        const l = (-90 + (180 * i) / n) * D2R, mu = m * D2R;
+        a.push([Math.cos(l) * Math.sin(mu), Math.sin(l), -Math.cos(l) * Math.cos(mu)]); // meridian
+        b.push([Math.cos(mu) * Math.sin(l), Math.sin(mu), -Math.cos(mu) * Math.cos(l)]); // small circle at latitude m
+      }
+      lines.push(a, b);
+    }
+    return lines;
   }
   // Inverse: net coordinates (radius <= 1) -> lower-hemisphere unit vector.
   function unproject(x, y) {
@@ -134,6 +151,6 @@
   }
   const blueRamp = (t) => `rgb(${blueRGB(t).join(',')})`;
 
-  const api = { norm360, strikeToDipDir, dipDirToStrike, poleFromPlane, trendPlungeToVec, vecToTrendPlunge, poleToPlane, poleVec, project, unproject, greatCircle, meanPlane, kernelKappa, density, contourSegments, blueRGB, blueRamp };
+  const api = { norm360, strikeToDipDir, dipDirToStrike, poleFromPlane, trendPlungeToVec, vecToTrendPlunge, poleToPlane, poleVec, project, netGrid, unproject, greatCircle, meanPlane, kernelKappa, density, contourSegments, blueRGB, blueRamp };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.OrionStereo = api;
 })(typeof window !== 'undefined' ? window : globalThis);

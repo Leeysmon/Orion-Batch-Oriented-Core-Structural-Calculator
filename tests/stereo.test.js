@@ -100,6 +100,19 @@ t('contour segments surround a peak; none above the maximum', () => {
   assert.strictEqual(S.contourSegments(d.grid, d.size, d.max * 1.01).length, 0);
 });
 
+t('Wulff (equal-angle) projection: r = tan(theta/2); primitive stays radius 1', () => {
+  near(Math.hypot(...S.project(S.trendPlungeToVec(0, 45), 'wulff')), Math.tan(Math.PI / 8));
+  near(Math.hypot(...S.project([1, 0, 0], 'wulff')), 1);
+});
+
+t('net grid: every point is lower hemisphere; meridians meet at N and S; N-S axis small circle is a point-pair', () => {
+  const g = S.netGrid(10, 90);
+  assert.strictEqual(g.length, 34);
+  g.forEach((ln) => ln.forEach((v) => { assert.ok(v[2] <= 1e-12); near(Math.hypot(...v), 1, 1e-12); }));
+  const m = g[0]; near(m[0][1], -1, 1e-12); near(m[90][1], 1, 1e-12); // first meridian runs S -> N
+  const p = S.project(m[90]); near(p[0], 0, 1e-12); near(p[1], 1, 1e-12); // north end sits at top of the net
+});
+
 t('blue ramp runs light blue -> deep blue', () => {
   assert.strictEqual(S.blueRamp(0), 'rgb(191,225,255)'); assert.strictEqual(S.blueRamp(1), 'rgb(8,48,140)');
 });

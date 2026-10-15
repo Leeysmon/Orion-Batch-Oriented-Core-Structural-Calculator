@@ -765,7 +765,7 @@
   const SN = { hits: [] };
   const SNs = () => ({
     lines: $('#snLines').checked, poles: $('#snPoles').checked, mean: $('#snMean').checked, meanPole: $('#snMeanPole').checked,
-    grid: $('#snGrid').checked, dens: $('#snDens').checked, lw: Number($('#snLw').value), ps: Number($('#snPs').value), white: $('#snWhite').checked,
+    grid: $('#snGrid').checked, dens: $('#snDens').checked, wulff: $('#snNet').value === 'wulff', lw: Number($('#snLw').value), ps: Number($('#snPs').value), white: $('#snWhite').checked,
   });
   const ST = window.OrionStereo;
   const poleVec = ST.poleVec;
@@ -779,11 +779,11 @@
     const dark = !st.white, ink = dark ? '#e3eefc' : '#111', bg = dark ? '#0a1a2e' : '#ffffff';
     g.fillStyle = bg; g.fillRect(0, 0, w, h);
     const R = Math.min(w - 120, h - 90) / 2, cx = w / 2, cy = h / 2 + 8;
-    const proj = (v) => { const p = ST.project(v); return [cx + R * p[0], cy - R * p[1]]; };
+    const proj = (v) => { const p = ST.project(v, st.wulff ? 'wulff' : 'area'); return [cx + R * p[0], cy - R * p[1]]; };
     g.save();
     g.beginPath(); g.arc(cx, cy, R, 0, 2 * Math.PI); g.fillStyle = dark ? '#0d2038' : '#fff'; g.fill(); g.clip();
     const items = V.items.filter((it) => it.group.visible);
-    if (st.dens && items.length) {
+    if (st.dens && !st.wulff && items.length) {
       const dn = ST.density(items.map((it) => poleVec(it.res.dip, it.res.dipDir)), 90);
       const oc = document.createElement('canvas'); oc.width = oc.height = dn.size;
       const oc2 = oc.getContext('2d'), img = oc2.createImageData(dn.size, dn.size);
@@ -808,9 +808,8 @@
       });
     }
     if (st.grid) {
-      g.strokeStyle = dark ? '#35557c' : '#c8c8c8'; g.lineWidth = 0.8; g.setLineDash([2, 3]);
-      for (let p = 10; p < 90; p += 10) { const r = R * Math.SQRT2 * Math.sin(((90 - p) * D2R) / 2); g.beginPath(); g.arc(cx, cy, r, 0, 2 * Math.PI); g.stroke(); }
-      for (let a = 0; a < 360; a += 15) { const t = a * D2R; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + R * Math.sin(t), cy - R * Math.cos(t)); g.stroke(); }
+      g.strokeStyle = dark ? '#3d6190' : '#9a9a9a'; g.lineWidth = 0.8; g.setLineDash([2, 3]);
+      ST.netGrid(10, 90).forEach((ln) => { g.beginPath(); ln.map(proj).forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.stroke(); });
       g.setLineDash([]);
     }
     g.strokeStyle = ink; g.lineWidth = 0.8;
@@ -968,7 +967,7 @@
   $('#opVal').textContent = '50% transparent';
 
   // stereonet controls
-  ['snLines', 'snPoles', 'snDens', 'snMean', 'snMeanPole', 'snGrid', 'snWhite'].forEach((id) => ($('#' + id).onchange = () => SN.draw()));
+  ['snLines', 'snPoles', 'snDens', 'snNet', 'snMean', 'snMeanPole', 'snGrid', 'snWhite'].forEach((id) => ($('#' + id).onchange = () => SN.draw()));
   ['snLw', 'snPs'].forEach((id) => ($('#' + id).oninput = (e) => { $('#' + id + 'V').textContent = e.target.value; SN.draw(); }));
   $('#sn').addEventListener('click', (e) => {
     const b = e.currentTarget.getBoundingClientRect(), i = SN.pick(e.clientX - b.left, e.clientY - b.top);
